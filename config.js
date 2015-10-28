@@ -18,11 +18,10 @@ exports.docker = {
 ///////////////
 
 const zookeeper = exports.zookeeper = {
+   containerName: 'log-api-zookeeper',
    port: 2181,
    dataDir: volumeDir('zookeeper'),
-   configDir: configDir(''),
-
-   containerName: 'log-api-zookeeper'
+   configDir: configDir('')
 };
 
 zookeeper.containerOpts = {
@@ -46,10 +45,9 @@ zookeeper.containerOpts = {
 ///////////
 
 const kafka = exports.kafka = {
+   containerName: 'log-api-kafka',
    port: 9092,
-   dataDir: volumeDir('kafka'),
-
-   containerName: 'log-api-kafka'
+   dataDir: volumeDir('kafka')
 };
 
 kafka.containerOpts = {
@@ -71,20 +69,25 @@ kafka.containerOpts = {
 //////////////
 
 const postgres = exports.postgres = {
+   containerName: 'log-api-postgres',
    port: 5432,
    dataDir: volumeDir('postgres'),
-   containerName: 'log-api-postgres'
+   username: process.env.POSTGRES_USER || 'logsss',
+   password: process.env.POSTGRES_PASSWORD || 'logsss'
 };
 
 postgres.containerOpts = {
    Image: 'postgres',
    HostConfig: {
-      Links: [`log-api-zookeeper:zookeeper`],
       Binds: [
          `${postgres.dataDir}:/var/lib/postgresql/data`
       ],
       PortBindings: {
          '5432/tcp': [{ HostPort: `${postgres.port}` }]
       }
-   }
+   },
+   Env: [
+      `POSTGRES_USER=${postgres.username}`,
+      `POSTGRES_PASSWORD=${postgres.username}`
+   ]
 };

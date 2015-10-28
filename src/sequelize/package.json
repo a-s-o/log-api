@@ -1,12 +1,12 @@
 {
-   "name": "postgres",
-   "main": "postgres.js",
+   "name": "sequelize",
+   "main": "sequelize.js",
    "version": "1.0.0",
    "description": "",
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
       "consumes": ["docker"],
-      "provides": ["postgres"]
+      "provides": ["sequelize"]
    }
 }
