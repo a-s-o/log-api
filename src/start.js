@@ -18,8 +18,13 @@ const providers = [
       packagePath: './logger',
       namespace: 'log-api'
    },
-
-   // cfg.postgres,
+   {
+      packagePath: './sequelize',
+      postgresContainer: cfg.postgres.containerName,
+      username: cfg.postgres.username,
+      password: cfg.postgres.password,
+      port: cfg.postgres.port
+   },
 
    // { packagePath: './api', port: 5000 }
 ];
@@ -32,5 +37,23 @@ app.on('error', (err) => {
 });
 
 app.on('ready', () => {
-   console.log('ready', app.services.kafka);
+   console.log('ready', Object.keys(app.services));
+   const kafka = app.services.kafka;
+
+   const consumer = kafka.createConsumer([
+      { topic: 'test', offset: 0 }
+   ], {
+      fromOffset: true
+   });
+
+   consumer.on('message', msg => console.log('READ:', msg));
+
+   kafka.sendMessage({
+      topic: 'test',
+      partition: 0,
+      messages: [
+         { eventType: 'random', eventTime: Date.now() }
+      ]
+   });
+
 });
