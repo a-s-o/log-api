@@ -1,0 +1,12 @@
+{
+   "name": "docker",
+   "main": "docker.js",
+   "version": "1.0.0",
+   "description": "",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [],
+      "provides": ["docker"]
+   }
+}
