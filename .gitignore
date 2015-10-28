@@ -1,0 +1,4 @@
+node_modules
+binaries
+pids
+*.log
