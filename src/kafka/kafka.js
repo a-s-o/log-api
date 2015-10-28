@@ -51,9 +51,8 @@ function createClient ( zookeeperHost ) {
    Kafka.createProducer = (opts) => createProducer(client, opts || {});
    Kafka.createConsumer = (req, opts) => createConsumer(client, req, opts || {});
 
-   return {
-      kafka: Kafka
-   };
+   // Provide the kafka service
+   return { kafka: Kafka };
 }
 
 module.exports = function provider (config, imports, provide) {
