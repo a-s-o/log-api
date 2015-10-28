@@ -1,32 +1,48 @@
 'use strict';
 
+// Purpose:
+// - Provides an interface for dealing with docker
+// - Prevents app from running if docker cannot be accessed
+//   or installed version is incompatible (requires docker API 1.x)
+
 const _ = require('lodash');
 const t = require('@aso/tcomb');
 const Bluebird = require('@aso/bluebird');
 const shell = Bluebird.promisifyAll(require('shelljs'));
 
+const optional = t.maybe;
+const StringArray = t.list(t.String, 'Array<String>');
+
 // Docker client
 const DockerClass = require('dockerode');
 
-// Public API
+///////////
+// Types //
+///////////
+
+// Docker client
 const Docker = t.irreducible('Docker', function isDocker (x) {
    return x instanceof DockerClass;
 });
 
-Docker.create = t.typedFunc({
+// Info returned from createContainer, containerInfo, etc.
+// Any object with an id, for now but we can later enforce more requirements
+Docker.Info = t.subtype(t.Object, obj => _.isString(obj.Id), 'Docker.Info');
+
+Docker.Info.create = t.typedFunc({
    inputs: [t.Object],
-   output: Docker,
-   fn: function dockerFactory (opts) {
-      return new DockerClass(opts);
-   }
+   output: Docker.Info,
+   fn: _.identity
 });
 
-Docker.Info = t.struct({
+////////////////
+// Public API //
+////////////////
 
-});
+// Special errors
 
-// Export some
-
+// ContainerNotFound
+// Thrown when a container cannot be found by name/id
 Docker.ContainerNotFound = class ContainerNotFound extends Error {
    constructor () {
       super();
@@ -37,6 +53,16 @@ Docker.ContainerNotFound = class ContainerNotFound extends Error {
 };
 
 // Public methods
+
+// Docker.containerInfo
+// ---
+// Gets an object with container information from docker
+//
+// Signature:
+//    [client:Docker, name: String] -> Promise < Docker.Info >
+//
+// Throws:
+//    Docker.ContainerNotFound - when no matching container is found
 
 const containerInfo = t.typedFunc({
    inputs: [Docker, t.String],
@@ -54,30 +80,59 @@ const containerInfo = t.typedFunc({
                return reject(err);
             }
 
-            return resolve(new Docker.Info(data));
+            return resolve( Docker.Info.create(data) );
          });
       });
    }
 });
 
-const createContainer = t.typedFunc({
-   inputs: [Docker, t.String, t.Object],
-   output: t.Promise, // < Docker.Info >
-   fn: function createContainer (docker, name, options) {
-      // Create a docker container then return
-      // information about it. This is called
-      // only when a container does not exist (404)
-      function create () {
-         console.log('here');
-      }
+// Docker.createContainer
+// ---
+// Creates a new container with supplied options. Options must an
+// object in accordance with Docker remote api 1.x
+//
+// (see https://docs.docker.com/reference/api/docker_remote_api_v1.20
+//    /#create-a-container)
+//
+// Signature:
+//    [client:Docker, name:String, options:Object] -> Promise < Docker.Info >
 
-      // Get the contianer info; if it exists, do nothing
-      return Docker.containerInfo(docker, name)
-         .catch(Docker.ContainerNotFound, create);
+const createContainer = t.typedFunc({
+   inputs: [Docker, t.String, t.struct({
+      Image: t.String,
+      Cmd: optional(StringArray),
+      Mounts: optional(t.list(t.Object))
+   })],
+
+   output: t.Promise, // < Docker.Info >
+
+   fn: function createContainer (docker, name, options) {
+      // Create container if it does not exist; return Docker.Info
+      return containerInfo(docker, name)
+         .catch(Docker.ContainerNotFound, function createIt () {
+            const deferred = Bluebird.defer();
+
+            // Add contianer name to container options
+            const args = _.extend({ name }, options);
+            docker.createContainer(args, deferred.callback);
+
+            return deferred.promise
+               .then(() => containerInfo(docker, name));
+         });
    }
 });
 
-// Internals
+///////////////
+// Internals //
+///////////////
+
+Docker.create = t.typedFunc({
+   inputs: [t.Object],
+   output: Docker,
+   fn: function dockerFactory (opts) {
+      return new DockerClass(opts);
+   }
+});
 
 const checkConnectivity = Bluebird.coroutine(function *check () {
    // Get docker version info in JSON format
@@ -104,7 +159,7 @@ module.exports = function setup (options, imports, provide) {
       // Create a client and partially bind to all public methods as
       // app only supports communicating with one local docker instance
       const client = Docker.create(options);
-      Docker.containerInfo = _.partial(containerInfo, client);
+      Docker.containerInfo = _.partial(containerInfo);
       Docker.createContainer = _.partial(createContainer, client);
 
       // Provide the docker service to the app
