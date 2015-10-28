@@ -1,0 +1,12 @@
+{
+   "name": "kafka",
+   "main": "kafka.js",
+   "version": "1.0.0",
+   "description": "",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": ["docker"],
+      "provides": ["kafka"]
+   }
+}
