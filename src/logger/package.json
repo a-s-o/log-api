@@ -1,0 +1,12 @@
+{
+   "name": "logger",
+   "main": "logger.js",
+   "version": "1.0.0",
+   "description": "",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [],
+      "provides": ["logger"]
+   }
+}
