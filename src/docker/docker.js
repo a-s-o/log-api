@@ -44,10 +44,11 @@ Docker.Info.create = t.typedFunc({
 // ContainerNotFound
 // Thrown when a container cannot be found by name/id
 Docker.ContainerNotFound = class ContainerNotFound extends Error {
-   constructor () {
+   constructor (name, data) {
       super();
       Error.captureStackTrace(this, this.constructor);
-      this.name = 'DockerContainerNotFound';
+      this.name = `DockerContainerNotFound [${name}]`;
+      this.data = data;
       this.code = 404;
    }
 };
@@ -74,7 +75,7 @@ const containerInfo = t.typedFunc({
             if (err) {
                // Provide special error when container is not found
                if (err.statusCode === 404) {
-                  return reject(new Docker.ContainerNotFound(err));
+                  return reject(new Docker.ContainerNotFound(name, err));
                }
 
                return reject(err);
@@ -101,23 +102,50 @@ const createContainer = t.typedFunc({
    inputs: [Docker, t.String, t.struct({
       Image: t.String,
       Cmd: optional(StringArray),
-      Mounts: optional(t.list(t.Object))
+      Mounts: optional(t.list(t.Object)),
+      HostConfig: optional(t.Object)
    })],
 
    output: t.Promise, // < Docker.Info >
 
    fn: function createContainer (docker, name, options) {
-      // Create container if it does not exist; return Docker.Info
-      return containerInfo(docker, name)
-         .catch(Docker.ContainerNotFound, function createIt () {
+      // Assume that if an existing container is re-created then
+      // the new container replaces the existing one
+      //
+      // NOTE: don't do this in production; there should be
+      // a separate method for container removal
+      const removed = Bluebird.defer();
+      const existing = docker.getContainer(name);
+      existing.stop(() => existing.remove(() => removed.resolve()));
+
+      return removed.promise
+         .then(function createIt () {
             const deferred = Bluebird.defer();
 
             // Add contianer name to container options
             const args = _.extend({ name }, options);
             docker.createContainer(args, deferred.callback);
 
-            return deferred.promise
-               .then(() => containerInfo(docker, name));
+            // Return container info once it is created
+            return deferred.promise.then(() => containerInfo(docker, name));
+         });
+   }
+});
+
+const startContainer = t.typedFunc({
+   inputs: [Docker, t.String],
+   output: t.Promise, // < Docker.Info >
+   fn: function startContainer (docker, name) {
+      return containerInfo(docker, name)
+         .then(function startIt (info) {
+            // If container is already running, just return the info
+            if (info.State.Running === true) return info;
+
+            // Otherwise, start the container and re-fetch the info
+            const container = docker.getContainer(info.Id);
+            const started = Bluebird.defer();
+            container.start(started.callback);
+            return started.promise.then(() => containerInfo(docker, name));
          });
    }
 });
@@ -127,7 +155,7 @@ const createContainer = t.typedFunc({
 ///////////////
 
 Docker.create = t.typedFunc({
-   inputs: [t.Object],
+   inputs: [t.struct({ socketPath: t.String })],
    output: Docker,
    fn: function dockerFactory (opts) {
       return new DockerClass(opts);
@@ -153,14 +181,15 @@ const checkConnectivity = Bluebird.coroutine(function *check () {
 });
 
 
-module.exports = function setup (options, imports, provide) {
+module.exports = function setup (config, imports, provide) {
 
    function createClient () {
       // Create a client and partially bind to all public methods as
       // app only supports communicating with one local docker instance
-      const client = Docker.create(options);
+      const client = Docker.create({ socketPath: config.socketPath });
       Docker.containerInfo = _.partial(containerInfo);
       Docker.createContainer = _.partial(createContainer, client);
+      Docker.startContainer = _.partial(startContainer, client);
 
       // Provide the docker service to the app
       return { docker: Docker };
