@@ -20,6 +20,7 @@ exports.docker = {
 const zookeeper = exports.zookeeper = {
    port: 2181,
    dataDir: volumeDir('zookeeper'),
+   configDir: configDir(''),
 
    containerName: 'log-api-zookeeper'
 };
@@ -30,7 +31,7 @@ zookeeper.containerOpts = {
    HostConfig: {
       Binds: [
          `${zookeeper.dataDir}:/opt/zookeeper`,
-         `${configDir('')}:/etc/conf`
+         `${zookeeper.configDir}:/etc/conf`
       ],
       PortBindings: {
          '2181/tcp': [{ HostPort: `${zookeeper.port}` }],

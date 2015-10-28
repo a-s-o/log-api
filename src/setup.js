@@ -10,6 +10,7 @@ const dockerProvider = require('./docker');
 
 // Create directories syncronously
 Shell.mkdir(config.zookeeper.dataDir);
+Shell.mkdir(config.zookeeper.configDir);
 Shell.mkdir(config.kafka.dataDir);
 Shell.mkdir(path.join(config.kafka.dataDir, 'data'));
 Shell.mkdir(path.join(config.kafka.dataDir, 'logs'));
