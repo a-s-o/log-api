@@ -1,0 +1,11 @@
+{
+   "name": "api",
+   "main": "api.js",
+   "version": "1.0.0",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [],
+      "provides": ["api"]
+   }
+}

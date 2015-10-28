@@ -4,8 +4,8 @@
   "description": "Sample log api",
   "main": "src/start.js",
   "scripts": {
-    "start": "node src/start",
-    "setup": "node src/setup",
+    "start": "node src/start.js",
+    "setup": "node src/setup.js",
     "test": "mocha -R spec src/**/*.spec.js"
   },
   "author": "Amandeep",
@@ -15,15 +15,16 @@
     "should": "^7.1.1"
   },
   "dependencies": {
-    "download": "^4.4.1",
-    "nexpect": "^0.5.0",
-    "shelljs": "^0.5.3",
     "@aso/bluebird": "a-s-o/bluebird",
     "@aso/tcomb": "a-s-o/tcomb",
     "architect": "^0.1.11",
+    "bunyan": "^1.5.1",
     "dockerode": "^2.2.3",
+    "download": "^4.4.1",
     "kafka-node": "^0.2.29",
     "koa": "^1.1.1",
-    "lodash": "^3.10.1"
+    "lodash": "^3.10.1",
+    "nexpect": "^0.5.0",
+    "shelljs": "^0.5.3"
   }
 }
