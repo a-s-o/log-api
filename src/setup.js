@@ -1,50 +1,58 @@
 'use strict';
 
 const _ = require('lodash');
-const t = require('@aso/tcomb');
 const Bluebird = require('@aso/bluebird');
 const Shell = require('shelljs');
+const path = require('path');
 
 const config = require('../config');
-const dockerSetup = require('./docker');
+const dockerProvider = require('./docker');
 
-module.exports = dockerSetup(config.docker, {})
+// Create directories syncronously
+Shell.mkdir(config.zookeeper.dataDir);
+Shell.mkdir(config.kafka.dataDir);
+Shell.mkdir(path.join(config.kafka.dataDir, 'data'));
+Shell.mkdir(path.join(config.kafka.dataDir, 'logs'));
+Shell.mkdir(config.postgres.dataDir);
 
-   // Create containers for all services
-   .then(provided => {
-      const services = ['zookeeper', 'kafka', 'postgres'];
-      const dockerCreate = _.partial(createContainer, provided.docker);
-      return Bluebird.reduce(services, dockerCreate, {});
-   })
+// Execute async setup (return promise for ease of use)
+module.exports = getDocker()
+   .then(createContainers)
+   .then(logContainerIDs);
 
-   .then(function done (arg) {
-      console.log( arg );
-   });
+function getDocker () {
+   return dockerProvider(config.docker, {}).then(provided => provided.docker);
+}
 
-/////////////
-// Helpers //
-/////////////
+function createContainers (docker) {
+   const dockerCreate = _.partial(createContainer, docker);
+   const services = ['zookeeper', 'kafka', 'postgres'];
+   return Bluebird.reduce(services, dockerCreate, {});
+}
+
+function logContainerIDs (containers) {
+   return _.mapValues(containers, 'Id');
+}
 
 function createContainer (docker, result, name) {
-   function pullImage (cfg) {
-      return pull(cfg.containerOpts.Image);
-   }
-
    function create (cfg) {
       console.log(`Creating docker container "${cfg.containerName}"`);
       return docker.createContainer(cfg.containerName, cfg.containerOpts);
    }
 
    return Bluebird.resolve(config[name])
-      .tap(pullImage)
+      // TODO: enable pull image
+      // .tap(pullImage)
       .then(create)
       .then(function containerCreated (info) {
-         result[name] = info.Id;
+         result[name] = info;
          return result;
       });
 }
 
-function pull (image) {
+function pullImage (cfg) {
+   const image = cfg.containerOpts.Image;
+
    process.stdout.write(`Pulling "${image}"...`);
 
    return new Bluebird(function exec (resolve, reject) {
