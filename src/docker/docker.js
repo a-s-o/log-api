@@ -102,8 +102,8 @@ const createContainer = t.typedFunc({
    inputs: [Docker, t.String, t.struct({
       Image: t.String,
       Cmd: optional(StringArray),
-      Mounts: optional(t.list(t.Object)),
-      HostConfig: optional(t.Object)
+      HostConfig: optional(t.Object),
+      Env: optional(StringArray)
    })],
 
    output: t.Promise, // < Docker.Info >
