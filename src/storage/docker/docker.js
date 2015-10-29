@@ -47,9 +47,11 @@ Docker.ContainerNotFound = class ContainerNotFound extends Error {
    constructor (name, data) {
       super();
       Error.captureStackTrace(this, this.constructor);
-      this.name = `DockerContainerNotFound [${name}]`;
+      this.name = `DockerContainerNotFound`;
+      this.status = this.statusCode = 404;
+      this.message = `Docker container "${name}" was not found`;
       this.data = data;
-      this.code = 404;
+      this.expose = false;
    }
 };
 
