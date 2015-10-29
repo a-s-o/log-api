@@ -1,10 +1,13 @@
 'use strict';
 
+const Bluebird = require('@aso/bluebird');
 const joi = require('joi');
 
 module.exports = function validator (endpoint) {
+   const handler = Bluebird.coroutine(endpoint.handler);
+
    return function *wrapper () {
-      const check = joi.validate(this.request.body, endpoint.inputs, {
+      const check = joi.validate(this.request.body || {}, endpoint.inputs, {
          stripUnknown: true,
          convert: true,
          abortEarly: true
@@ -16,7 +19,6 @@ module.exports = function validator (endpoint) {
          });
       }
 
-      // Handlers are all terminal (returning) so no need to pass next
-      yield* endpoint.handler.call(this, check.value);
+      yield handler.call(this, check.value);
    };
 };

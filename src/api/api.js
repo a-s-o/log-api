@@ -4,12 +4,16 @@ const koa = require('koa');
 const route = require('koa-route');
 const body = require('koa-body');
 
+const responseFormatter = require('./responseFormatter');
+
 module.exports = function provider (config, imports, provide) {
 
    const endpoints = require('./endpoints')(imports);
    const api = koa();
 
    api.use(body());
+
+   api.use(responseFormatter);
 
    api.use(route.post('/log', endpoints.createLog));
    api.use(route.post('/classes/user', endpoints.createUser));

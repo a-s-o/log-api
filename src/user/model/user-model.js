@@ -32,7 +32,6 @@ const setup = Bluebird.coroutine(function *setupUserModel (config, imports) {
    const sequelize = imports.sequelize;
    const log = imports.logger.child({ component: 'user-model' });
 
-
    // Create a user model
    const model = sequelize.define('User', UserSchema, { tableName });
    yield model.sync();

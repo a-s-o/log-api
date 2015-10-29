@@ -5,7 +5,11 @@
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
-      "consumes": [],
-      "provides": ["api"]
+      "consumes": [
+         "user-commands"
+      ],
+      "provides": [
+         "api"
+      ]
    }
 }
