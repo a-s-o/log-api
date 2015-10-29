@@ -19,12 +19,12 @@ const Kafka = t.irreducible('Kafka', instanceOf(NodeKafka.Client));
 Kafka.Producer = t.irreducible('KafkaProducer', instanceOf(NodeKafka.Producer));
 Kafka.Consumer = t.irreducible('KafkaConsumer', instanceOf(NodeKafka.Consumer));
 
-// Validate requests - can't use a immutable data here as NodeKafka
-// internally mutates the objects
+// FetchRequest - keep mutable as NodeKafka's internally modifies these
 Kafka.FetchRequest = t.subtype(t.Object, function isFetchRequest (obj) {
    return _.isString(obj.topic) && _.isNumber(obj.offset);
 }, 'KafkaFetchRequest');
 
+// Message - i.e. the value to be saved in Kafka
 Kafka.Message = t.subtype(t.Object, obj => {
    return _.has(obj, 'eventType') && _.has(obj, 'eventTime');
 }, 'KafkaMessage');
@@ -34,6 +34,19 @@ Kafka.ProduceRequest = t.struct({
    messages: t.list(Kafka.Message),
    partition: t.Number
 }, 'KafkaProduceRequest');
+
+////////////
+// Errors //
+////////////
+
+Kafka.UnableToSerialize = class UnableToSerialize extends Error {
+   constructor (data) {
+      super();
+      Error.captureStackTrace(this, this.constructor);
+      this.data = data;
+      this.name = 'UnableToSerialize';
+   }
+};
 
 ////////////
 // Public //
@@ -54,7 +67,7 @@ const sendMessage = t.typedFunc({
       function sent (resolve, reject) {
          const message = {
             topic: request.topic,
-            messages: request.messages.map(msg => JSON.stringify(msg)),
+            messages: request.messages.map(serializeMessage),
             partition: request.partition
          };
 
@@ -83,6 +96,14 @@ const sendMessage = t.typedFunc({
 //////////////
 // Internal //
 //////////////
+
+function serializeMessage (msg) {
+   try {
+      return JSON.stringify(msg);
+   } catch (ex) {
+      throw new Kafka.UnableToSerialize(msg);
+   }
+}
 
 // Internal for now as single producer is sufficient;
 // this factory can be exposed later down the road if
