@@ -1,0 +1,16 @@
+{
+   "name": "user-queries",
+   "main": "user-queries.js",
+   "version": "1.0.0",
+   "description": "Provide an interface for querying users",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "user-model"
+      ],
+      "provides": [
+         "user-queries"
+      ]
+   }
+}

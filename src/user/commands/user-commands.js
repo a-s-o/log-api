@@ -14,7 +14,7 @@ const EncryptedPassword = t.struct({
 const User = t.struct({
    email: t.String,
    name: t.String,
-   password: t.union(t.String, EncryptedPassword)
+   password: t.union([t.String, EncryptedPassword])
 });
 
 function conflict () {
@@ -22,7 +22,7 @@ function conflict () {
 }
 
 module.exports = function provider (config, imports, provide) {
-   if (typeof config.topicName === 'string') {
+   if (typeof config.topicName !== 'string') {
       throw new Error('config.topicName must be string');
    }
 

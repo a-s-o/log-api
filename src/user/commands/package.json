@@ -2,7 +2,7 @@
    "name": "user-commands",
    "main": "user-commands.js",
    "version": "1.0.0",
-   "description": "Provide an interface for writing and querying users",
+   "description": "Provide an interface for updating users",
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
