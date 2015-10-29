@@ -1,0 +1,18 @@
+{
+   "name": "user-commands",
+   "main": "user-commands.js",
+   "version": "1.0.0",
+   "description": "Provide an interface for writing and querying users",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "kafka",
+         "user-queries",
+         "hasher"
+      ],
+      "provides": [
+         "user-commands"
+      ]
+   }
+}
