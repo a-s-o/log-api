@@ -72,22 +72,24 @@ const postgres = exports.postgres = {
    containerName: 'log-api-postgres',
    port: 5432,
    dataDir: volumeDir('postgres'),
-   username: process.env.POSTGRES_USER || 'logsss',
-   password: process.env.POSTGRES_PASSWORD || 'logsss'
+   dbname: process.env.PG_DB || 'logs',
+   username: process.env.PG_USER || 'pguser',
+   password: process.env.PG_PASS || 'pgpass'
 };
 
 postgres.containerOpts = {
-   Image: 'postgres',
+   Image: 'sameersbn/postgresql',
    HostConfig: {
       Binds: [
-         `${postgres.dataDir}:/var/lib/postgresql/data`
+         `${postgres.dataDir}:/var/lib/postgresql`
       ],
       PortBindings: {
          '5432/tcp': [{ HostPort: `${postgres.port}` }]
       }
    },
    Env: [
-      `POSTGRES_USER=${postgres.username}`,
-      `POSTGRES_PASSWORD=${postgres.username}`
+      `DB_NAME=${postgres.dbname}`,
+      `DB_USER=${postgres.username}`,
+      `DB_PASS=${postgres.password}`
    ]
 };
