@@ -1,0 +1,16 @@
+{
+   "name": "crypto",
+   "main": "crypto.js",
+   "version": "1.0.0",
+   "description": "Promisified utils for encryption",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [],
+      "provides": [
+         "crypto",
+         "hasher",
+         "randomid"
+      ]
+   }
+}
