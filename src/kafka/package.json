@@ -6,7 +6,12 @@
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
-      "consumes": ["docker"],
-      "provides": ["kafka"]
+      "consumes": [
+         "docker",
+         "logger"
+      ],
+      "provides": [
+         "kafka"
+      ]
    }
 }

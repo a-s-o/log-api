@@ -9,6 +9,8 @@ const Bluebird = require('@aso/bluebird');
 const NodeKafka = require('kafka-node');
 const instanceOf = klass => x => x instanceof klass;
 
+const helpers = require('./helpers');
+
 const validTopics = ['logs', 'users', 'test'];
 
 ///////////
@@ -52,15 +54,7 @@ Kafka.UnableToSerialize = class UnableToSerialize extends Error {
 // Public //
 ////////////
 
-const createConsumer = t.typedFunc({
-   inputs: [Kafka, t.list(Kafka.FetchRequest), t.Object],
-   output: Kafka.Consumer,
-   fn: function producerFactory (client, requests, opts) {
-      return new NodeKafka.Consumer(client, requests, opts);
-   }
-});
-
-const sendMessage = t.typedFunc({
+Kafka.sendMessage = t.typedFunc({
    inputs: [Kafka.Producer, Kafka.ProduceRequest],
    output: t.Promise,
    fn: function sendMessage (producer, request) {
@@ -77,15 +71,7 @@ const sendMessage = t.typedFunc({
          }
 
          producer.on('error', err => reject(err));
-
-         if (producer.ready) {
-            producer.send([message], done);
-         } else {
-            producer.on('ready', () => {
-               producer.send([message], done);
-            });
-         }
-
+         helpers.producer.onReady(producer, () => producer.send([message], done));
       }
 
       const messageCreated = new Bluebird(sent);
@@ -93,22 +79,24 @@ const sendMessage = t.typedFunc({
    }
 });
 
-//////////////
-// Internal //
-//////////////
+Kafka.createTopic = t.typedFunc({
+   inputs: [Kafka.Producer, t.String],
+   output: t.Promise,  // < Response:String >
+   fn: function createTopic (producer, topicName) {
+      const created = new Bluebird(function wait (resolve, reject) {
+         helpers.producer.onReady(producer, () => {
+            // Second argument is async; async=false ensures the topic
+            // is created before this method returns
+            producer.createTopics([topicName], false, (err, resp) => {
+               if (err) reject(err);
+               else resolve(resp);
+            });
+         });
+      });
 
-function serializeMessage (msg) {
-   try {
-      return JSON.stringify(msg);
-   } catch (ex) {
-      throw new Kafka.UnableToSerialize(msg);
+      return created.timeout(2000, 'Kafka.createTopic timed out [2s]');
    }
-}
-
-// Internal for now as single producer is sufficient;
-// this factory can be exposed later down the road if
-// multiple producers are necessary
-// example:  Kafka.createProducer = (opts) => createProducer(client, opts || {});
+});
 
 const createProducer = t.typedFunc({
    inputs: [Kafka, t.struct({})],
@@ -118,39 +106,71 @@ const createProducer = t.typedFunc({
    }
 });
 
-function createClient ( zookeeperHost ) {
-   // Create a client (singleton)
-   // [connectionString:String, clientID:String]
-   const client = new NodeKafka.Client(`${zookeeperHost}/`, 'log-api-kafka-client');
+const createConsumer = t.typedFunc({
+   inputs: [Kafka, t.list(Kafka.FetchRequest), t.Object],
+   output: Kafka.Consumer,
+   fn: function consumerFactory (client, requests, opts) {
+      return new NodeKafka.Consumer(client, requests, opts);
+   }
+});
 
-   // Create a producer (also singleton)
-   const producer = createProducer(client, {
-      requireAcks: 1,
-      ackTimeoutMs: 500
-   });
 
-   // Make opts optional and pre-bind client instance to factories
-   Kafka.createConsumer = (req, opts) => createConsumer(client, req, opts || {});
-   Kafka.sendMessage = (req) => sendMessage(producer, req);
+//////////////
+// Internal //
+//////////////
 
-   return producer;
+// createProducer is internal for now as single producer
+// is sufficient; this factory can be exposed later down
+// the road if multiple producers are necessary
+// example:  Kafka.createProducer = (opts) => createProducer(client, opts || {});
+
+
+function serializeMessage (msg) {
+   try {
+      return JSON.stringify(msg);
+   } catch (ex) {
+      throw new Kafka.UnableToSerialize(msg);
+   }
 }
 
-function createTopics (producer, topics) {
-   const topicsCreated = new Bluebird(function wait (resolve, reject) {
-      producer.on('ready', () => {
-         producer.createTopics(topics, false, (err, resp) => {
-            if (err) reject(err);
-            else resolve(resp);
-         });
-      });
+function setupClient ( zookeeperHost, log ) {
+   const clientCreated = new Bluebird(function create (resolve) {
+      // Create a client (singleton)
+      const connectionString = `${zookeeperHost}/`;
+      const name = 'log-api-kafka-client';
+      const client = new NodeKafka.Client(connectionString, name);
+
+      // Just log all errors; this promise will reject based on timeout
+      client.on('error', (err) => log.error({ err }));
+      helpers.client.onReady(client, () => resolve(client));
    });
 
-   return topicsCreated.timeout(2000);
+   log.info('Waiting (upto 10s) for kafka to get ready');
+
+   return clientCreated
+      .timeout(10000, 'kafka client timed out [10s]')
+      .tap(() => log.info('kafka client is ready'));
 }
+
 
 module.exports = function provider (config, imports, provide) {
    const docker = imports.docker;
+   const log = imports.logger.child({ component: 'kafka' });
+
+   // Simple app, therefore client is a singleton and
+   // we pre-bind it to the factories below
+   function simplifyPublicAPI (client) {
+      Kafka.createConsumer = function boundConsumer (req, opts) {
+         return createConsumer(client, req, opts || {});
+      };
+
+      Kafka.createProducer = function boundProducer () {
+         return createProducer(client,  {
+            requireAcks: 1,
+            ackTimeoutMs: 500
+         });
+      };
+   }
 
    function output () {
       return { kafka: Kafka };
@@ -158,8 +178,8 @@ module.exports = function provider (config, imports, provide) {
 
    return docker.startContainer( config.zookeeperContainer )
       .then(() => docker.startContainer( config.kafkaContainer ))
-      .then(() => createClient( config.zookeeperHost ))
-      .then(producer => createTopics(producer, validTopics))
+      .then(() => setupClient( config.zookeeperHost, log ))
+      .tap(simplifyPublicAPI)
       .then(output)
       .nodeify(provide);
 };
