@@ -1,0 +1,16 @@
+{
+   "name": "offset",
+   "main": "offset.js",
+   "version": "1.0.0",
+   "description": "Sequelize store for kafka offsets",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "sequelize"
+      ],
+      "provides": [
+         "offset"
+      ]
+   }
+}
