@@ -1,6 +1,6 @@
 'use strict';
 const crypto = require('crypto');
-require('bluebird').promisifyAll(crypto);
+require('@aso/bluebird').promisifyAll(crypto);
 
 /*
 Usage

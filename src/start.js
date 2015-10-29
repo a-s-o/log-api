@@ -3,30 +3,44 @@
 const architect = require('architect');
 const cfg = require('../config.js');
 
+console.log(`Running in ${ process.env.NODE_ENV || 'dev' } mode`);
+
 const providers = [
+   // Main API package
+   { packagePath: './api' },
+
+   // Users
+   { packagePath: './user/commands', topicName: 'users' },
+   { packagePath: './user/model', topicName: 'users', tableName: 'users' },
+   { packagePath: './user/queries' },
+
+   // Offset
+   { packagePath: './storage/offset', topicName: 'users', tableName: 'users' },
+
+   // Utils
+   { packagePath: './utils/crypto' },
+   { packagePath: './utils/logger', namespace: 'log-api' },
+
+   // Storage / presistence services
    {
-      packagePath: './docker',
+      packagePath: './storage/docker',
       socketPath: cfg.docker.socketPath
    },
    {
-      packagePath: './kafka',
+      packagePath: './storage/kafka',
       kafkaContainer: cfg.kafka.containerName,
       zookeeperContainer: cfg.zookeeper.containerName,
       zookeeperHost: `localhost:${cfg.zookeeper.port}`
    },
    {
-      packagePath: './logger',
-      namespace: 'log-api'
-   },
-   {
-      packagePath: './sequelize',
+      packagePath: './storage/sequelize',
       postgresContainer: cfg.postgres.containerName,
+      dbname: cfg.postgres.dbname,
       username: cfg.postgres.username,
       password: cfg.postgres.password,
       port: cfg.postgres.port
-   },
+   }
 
-   // { packagePath: './api', port: 5000 }
 ];
 
 const manifest = architect.resolveConfig(providers, __dirname);
@@ -38,22 +52,6 @@ app.on('error', (err) => {
 
 app.on('ready', () => {
    console.log('ready', Object.keys(app.services));
-   const kafka = app.services.kafka;
 
-   const consumer = kafka.createConsumer([
-      { topic: 'test', offset: 0 }
-   ], {
-      fromOffset: true
-   });
-
-   consumer.on('message', msg => console.log('READ:', msg));
-
-   kafka.sendMessage({
-      topic: 'test',
-      partition: 0,
-      messages: [
-         { eventType: 'random', eventTime: Date.now() }
-      ]
-   });
-
+   app.services.api.listen(3000, () => console.log('listening on 3000'));
 });
