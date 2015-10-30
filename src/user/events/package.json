@@ -1,0 +1,16 @@
+{
+   "name": "user-events",
+   "main": "user-events.js",
+   "version": "1.0.0",
+   "description": "Event store for user events",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "event-store"
+      ],
+      "provides": [
+         "user-events"
+      ]
+   }
+}

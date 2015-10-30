@@ -1,0 +1,16 @@
+{
+   "name": "log-events",
+   "main": "log-events.js",
+   "version": "1.0.0",
+   "description": "Event store for log events",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "event-store"
+      ],
+      "provides": [
+         "log-events"
+      ]
+   }
+}
