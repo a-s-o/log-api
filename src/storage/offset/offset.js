@@ -8,9 +8,14 @@ module.exports = function extendClient (config, imports, provide) {
    const sequelize = imports.sequelize;
 
    const model = sequelize.define('offset', {
-      topic: {
+      tableName: {
          type: Sequelize.STRING,
          primaryKey: true
+      },
+
+      topic: {
+         type: Sequelize.STRING,
+         allowNull: false
       },
 
       offset: {
@@ -38,25 +43,26 @@ module.exports = function extendClient (config, imports, provide) {
    Offset.fetch = t.typedFunc({
       inputs: [t.String],
       output: t.Promise, // < Offset >
-      fn: function fetchOffset (topic) {
+      fn: function fetchOffset (tableName) {
 
          function applyDefault (existing) {
-            return Offset.create(existing || {
-               topic: topic,
+            return Offset.create(existing && existing.toJSON() || {
+               tableName: tableName,
+               topic: 'logs',
                offset: 0,
                partition: 0
             });
          }
-         
-         return model.findById(topic).then(applyDefault);
+
+         return model.findById(tableName).then(applyDefault);
       }
    });
 
    Offset.save = t.typedFunc({
       inputs: [Offset],
       output: t.Promise, // < Offset >
-      fn: function saveOffset () {
-         // return Offsets.findById(topic).then(Offset.create);
+      fn: function *saveOffset (offset) {
+         return model.upsert(offset).then(() => offset);
       }
    });
 
