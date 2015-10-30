@@ -32,14 +32,14 @@ const Proto = {
       const eventName = properties[this.typeProperty];
       const validated = this.validate(eventName, properties);
 
-      // Thunk
+      // Send the validated message async (thunk)
       const response = yield _.bind(this.producer.send, this.producer, [{
          topic: this.topic,
          partition: this.partition,
          messages: [ JSON.stringify(validated) ]
       }]);
 
-      // Add metadata
+      // Add metadata based on response from Kafka
       validated[this.metadataProperty] = {
          topic: this.topic,
          partiion: this.partition,
@@ -83,10 +83,10 @@ const Proto = {
          offset: offset || 0
       }];
 
-      const options = _.extend({
+      const options = _.defaults(arguments[1] || {}, {
          fromOffset: true,
          autoCommit: false
-      }, arguments[1]);
+      });
 
       const consumer = this.createConsumer(request, options);
 
