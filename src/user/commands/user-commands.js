@@ -6,10 +6,10 @@ const Bluebird = require('@aso/bluebird');
 const createError = require('http-errors');
 const uuid = require('node-uuid');
 
-const EncryptedPassword = t.struct({
-   key: t.String,
-   salt: t.String,
-   iterations: t.Number
+const EncryptedPassword = t.subtype(t.Object, function isPass (obj) {
+   return _.isString(obj.key) &&
+      _.isString(obj.salt) &&
+      _.isNumber(obj.iterations);
 }, 'EncryptedPassword');
 
 const User = t.struct({
@@ -27,26 +27,15 @@ module.exports = function provider (config, imports, provide) {
 
    const userQueries = imports['user-queries'];
 
-   function encryptPassword (user) {
-      // If user password is encrypted then we can continue
-      if (EncryptedPassword.is(user.password)) {
-         return user;
-      }
-
-      // Encrypt password
-      return Hasher({ plaintext: user.password, iterations })
-         .then(function update (hashed) {
-            // Serialize an encrypted password
-            const encrypted = EncryptedPassword({
-               key: hashed.key.toString(encoding),
-               salt: hashed.salt.toString(encoding),
-               iterations: hashed.iterations
-            });
-
-            // Update user instance
-            return User.update(user, { password: { $set: encrypted } });
-         });
-
+   function encryptPassword (plaintext) {
+      return Hasher({ plaintext, iterations }).then((hashed) => {
+         // Serialize the hashed password
+         return {
+            key: hashed.key.toString(encoding),
+            salt: hashed.salt.toString(encoding),
+            iterations: hashed.iterations
+         };
+      });
    }
 
    User.create = t.typedFunc({
@@ -57,51 +46,42 @@ module.exports = function provider (config, imports, provide) {
       })],
       output: t.Promise, // < User >
       fn: Bluebird.coroutine(function *saveUser (inputs) {
-         const existing = yield userQueries.findOne({
-            where: {
-               email: inputs.email
-            }
+         // If user already exists, throw conflict error
+         const existing = yield userQueries.count({
+            where: { email: inputs.email }
          });
-
-         // If user already exists with the same
-         // email, throw conflict error
          if (existing) throw createError(409);
-
-         const hashed = yield Hasher({ plaintext: inputs.password, iterations });
 
          return new User({
             id: uuid.v4(),
             email: inputs.email,
             name: inputs.name,
-            password: EncryptedPassword({
-               key: hashed.key.toString(encoding),
-               salt: hashed.salt.toString(encoding),
-               iterations: hashed.iterations
-            })
+            password: yield encryptPassword(inputs.password)
          });
       })
    });
 
    User.edit = t.typedFunc({
-      inputs: [t.struct({
-         email: t.String,
+      inputs: [t.String, t.struct({
          name: t.maybe(t.String),
          password: t.maybe(t.String)
       })],
       output: t.Promise, // < User >
-      fn: function updateUser (request) {
-         return userQueries
-            // Throws 404 if user is not found
-            .findOne(request.email)
-            .then(User)
-            // Apply the request to the existing user object
-            .then(existing => User.update(existing, {
-               name: { $set: request.name || existing.name },
-               password: { $set: request.password || existing.password }
-            }))
-            // If password was changed, re-encrypt it, else pass-through
-            .then(encryptPassword);
-      }
+      fn: Bluebird.coroutine(function *editUser (id, inputs) {
+         // If user does not exist, throw not found error
+         const existing = yield userQueries.findById(id);
+         if (!existing) throw createError(404);
+
+         // Need a mutable copy of the inputs
+         const update = _.clone(inputs);
+
+         // If a password is provided, encrypt it
+         if (update.password) {
+            update.password = yield encryptPassword(update.password);
+         }
+
+         return new User( _.extend(existing.toJSON(), update) );
+      })
    });
 
    provide(null, { 'user-commands': User });

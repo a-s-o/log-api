@@ -65,6 +65,7 @@ const setup = Bluebird.coroutine(function *setupUserModel (config, imports) {
    // Output user-model service
    return {
       'user-queries': {
+         count: model.count.bind(model),
          findOne: model.findOne.bind(model),
          findById: model.findById.bind(model),
          findAll: model.findAll.bind(model)
