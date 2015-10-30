@@ -8,7 +8,8 @@ module.exports = function provider (config, imports, provide) {
    }
 
    const appLogger = Bunyan.createLogger({
-      name: config.namespace
+      name: config.namespace,
+      level: config.level || 'info'
    });
 
    provide(null, {
