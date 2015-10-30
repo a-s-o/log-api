@@ -4,7 +4,7 @@
   "description": "Sample log api",
   "main": "src/start.js",
   "scripts": {
-    "start": "NODE_ENV=production node src/start.js",
+    "start": "NODE_ENV=production node src/start.js | bunyan -l info",
     "setup": "node src/setup.js",
     "test": "mocha -R spec src/**/*.spec.js"
   },
@@ -18,6 +18,7 @@
     "@aso/bluebird": "a-s-o/bluebird",
     "@aso/tcomb": "a-s-o/tcomb",
     "architect": "^0.1.11",
+    "baconjs": "^0.7.79",
     "bunyan": "^1.5.1",
     "dockerode": "^2.2.3",
     "http-errors": "^1.3.1",
@@ -27,9 +28,11 @@
     "koa-body": "^1.3.0",
     "koa-route": "^2.4.2",
     "lodash": "^3.10.1",
+    "node-uuid": "^1.4.3",
     "pg": "^4.4.3",
     "pg-hstore": "^2.3.2",
     "sequelize": "^3.13.0",
+    "sequelize-json": "^2.1.1",
     "shelljs": "^0.5.3"
   }
 }

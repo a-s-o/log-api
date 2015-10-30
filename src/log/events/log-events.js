@@ -1,7 +1,6 @@
 'use strict';
 
 const _ = require('lodash');
-const t = require('@aso/tcomb');
 const joi = require('joi');
 
 module.exports = function provider (options, imports, provide) {
@@ -12,21 +11,35 @@ module.exports = function provider (options, imports, provide) {
       topic: 'logs',
       strict: false, // Allow unspecified event types to be logged
       typeProperty: 'actionId',
-      metadataProperty: 'kafkaRef',
+      metadataProperty: '_kafka',
       commonProperties: {
          actionId: joi.string().required(),
          actionTime: joi.date().default(() => Date.now(), 'Now'),
-         kafkaRef: joi.date().default(() => ({}), 'EmptyObject')
+         _kafka: joi.date().default(() => ({}), 'EmptyObject')
       }
    };
 
+   const EncryptedPassword = joi.object().keys({
+      key: joi.string().required(),
+      salt: joi.string().required(),
+      iterations: joi.number().required()
+   });
+
    const supportedEvents = {
       USER_SIGNUP: {
-         data: joi.object().required()
+         userId: joi.string().guid().required(),
+         data: joi.object().required().keys({
+            email: joi.string().email().required(),
+            name: joi.string().required(),
+            password: EncryptedPassword.required()
+         })
       },
       USER_EDIT_PROFILE: {
          userId: joi.string().guid().required(),
-         data: joi.object().required()
+         data: joi.object().required().keys({
+            name: joi.string(),
+            password: EncryptedPassword
+         })
       }
    };
 

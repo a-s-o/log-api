@@ -33,16 +33,16 @@ const Proto = {
       const validated = this.validate(eventName, properties);
 
       // Thunk
-      const response = yield _.bind(this.producer.send, this.producer, {
+      const response = yield _.bind(this.producer.send, this.producer, [{
          topic: this.topic,
          partition: this.partition,
          messages: [ JSON.stringify(validated) ]
-      });
+      }]);
 
       // Add metadata
       validated[this.metadataProperty] = {
          topic: this.topic,
-         partiion: this.partiion,
+         partiion: this.partition,
          offset: _.get(response, [this.topic, this.partition])
       };
 
@@ -63,14 +63,15 @@ const Proto = {
 
       // Known event - validate properties
       const check = joi.validate(properties, eventDefinition.schema, {
-         stripUnknown: this.strict,
+         allowUnknown: this.strict === false,
+         stripUnknown: this.strict === true,
          convert: true,
          abortEarly: true
       });
 
       if (check.error) {
          const msg = _.get(check, 'error.details.0.message', 'Invalid event');
-         throw new new Error(msg);
+         throw new Error(msg);
       }
 
       return check.value;
@@ -131,7 +132,7 @@ const eventStoreFactory = t.typedFunc({
          client: client,
          producer: producer,
          events: _.mapValues(events, (schema) => ({
-            schema: _.defaults(schema, commonProps)
+            schema: _.extend({}, commonProps, schema)
          })),
 
          typeProperty: config.typeProperty || 'type',

@@ -7,14 +7,13 @@ const providers = [
    // Main API package
    { packagePath: './api' },
 
-   // Users
-   // { packagePath: './user/commands', topicName: 'users' },
-   // { packagePath: './user/model', topicName: 'users', tableName: 'users' },
-   // { packagePath: './user/queries' },
-   { packagePath: './user/events' },
+   // Event stores
+   // { packagePath: './user/events' },
    { packagePath: './log/events' },
 
-   // { packagePath: './log', tableName: 'logs', topicName: 'logs' },
+   // Users
+   { packagePath: './user/commands' },
+   { packagePath: './user/queries', tableName: 'users' },
 
    // Offset
    { packagePath: './storage/offset', topicName: 'users', tableName: 'users' },
@@ -61,9 +60,4 @@ app.on('ready', () => {
    const services = Object.keys(app.services).toString();
    log.info({ services }, `App Started in "${mode}" mode`);
    app.services.api.listen(3000, () => log.info('Listening on 3000'));
-
-   const logEvents = app.services['log-events'];
-   logEvents
-      .asEventStream(0, { fromOffset: true })
-      .log('logEvents');
 });
