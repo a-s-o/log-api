@@ -8,7 +8,6 @@ const providers = [
    { packagePath: './api' },
 
    // Event stores
-   // { packagePath: './user/events' },
    { packagePath: './log/events' },
 
    // Users
@@ -21,6 +20,7 @@ const providers = [
    // Utils
    { packagePath: './utils/crypto' },
    { packagePath: './utils/logger', namespace: 'log-api', level: 'trace' },
+   { packagePath: './log/file-writer', filename: 'app.log' },
 
    // Storage / presistence services
    {

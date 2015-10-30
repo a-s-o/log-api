@@ -1,0 +1,16 @@
+{
+   "name": "log-file-writer",
+   "main": "log-file-writer.js",
+   "version": "1.0.0",
+   "description": "Appends kafka into a configurable file",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "log-events"
+      ],
+      "provides": [
+
+      ]
+   }
+}
