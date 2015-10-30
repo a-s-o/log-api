@@ -4,7 +4,7 @@ const t = require('@aso/tcomb');
 
 const Sequelize = require('sequelize');
 
-function createClient (cfg) {
+function createClient (cfg, log) {
    const db = cfg.dbname;
    const user = cfg.username;
    const pass = cfg.password;
@@ -17,7 +17,8 @@ function createClient (cfg) {
          max: 5,
          min: 0,
          idle: 10000
-      }
+      },
+      logging: log.trace.bind(log)
    });
 
    return client;
@@ -42,13 +43,14 @@ module.exports = t.typedFunc({
    output: t.Promise,
    fn: function provider (cfg, imports, provide) {
       const docker = imports.docker;
+      const log = imports.logger.child({ component: 'sequelize' });
 
       function output (client) {
          return { sequelize: client };
       }
 
       return docker.startContainer( cfg.postgresContainer )
-         .then(() => createClient(cfg))
+         .then(() => createClient(cfg, log))
          .then(output)
          .nodeify(provide);
    }

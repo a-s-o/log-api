@@ -6,7 +6,12 @@
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
-      "consumes": ["docker"],
-      "provides": ["sequelize"]
+      "consumes": [
+         "docker",
+         "logger"
+      ],
+      "provides": [
+         "sequelize"
+      ]
    }
 }
