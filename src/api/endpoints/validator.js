@@ -1,7 +1,9 @@
 'use strict';
 
+const _ = require('lodash');
 const Bluebird = require('@aso/bluebird');
 const joi = require('joi');
+const createError = require('http-errors');
 
 module.exports = function validator (endpoint) {
    const handler = Bluebird.coroutine(endpoint.handler);
@@ -19,6 +21,20 @@ module.exports = function validator (endpoint) {
          });
       }
 
-      yield handler.call(this, check.value);
+      // Prepend inputs to handler arguments (i.e. route params)
+      const args = _.toArray(arguments);
+      args.unshift(check.value);
+
+      try {
+         yield handler.apply(this, args);
+      } catch (ex) {
+         if (ex.expose) {
+            throw ex;
+         }
+
+         console.log(ex.stack || ex);
+         throw createError(500);
+
+      }
    };
 };

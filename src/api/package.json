@@ -6,7 +6,9 @@
    "license": "UNLICENSED",
    "plugin": {
       "consumes": [
-         "user-commands"
+         "log-events",
+         "user-commands",
+         "user-queries"
       ],
       "provides": [
          "api"

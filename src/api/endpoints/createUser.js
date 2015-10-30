@@ -13,7 +13,7 @@ module.exports = function setup (imports) {
          password: joi.string().min(8).required()
       },
       *handler (inputs) {
-         // Create a user dmodel; also encrypts password
+         // Create a user model; also encrypts password
          const user = yield User.create(inputs);
 
          // Create a log entry
