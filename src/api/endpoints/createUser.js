@@ -8,7 +8,7 @@ module.exports = function setup (imports) {
 
    return {
       inputs: {
-         email: joi.string().email().required(),
+         email: joi.string().lowercase().email().required(),
          name: joi.string().required(),
          password: joi.string().min(8).required()
       },
