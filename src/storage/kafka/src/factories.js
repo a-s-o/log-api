@@ -7,11 +7,10 @@ const NodeKafka = require('kafka-node');
 const types = require('./types');
 
 exports.Client = t.typedFunc({
-   inputs: [t.String],
+   inputs: [t.String, t.String],
    output: types.Kafka, // < Kafka >
-   fn: function createClient ( zookeeperHost ) {
+   fn: function createClient ( zookeeperHost, name ) {
       const connectionString = `${zookeeperHost}/`;
-      const name = 'log-api-kafka-client';
       return new NodeKafka.Client(connectionString, name);
    }
 });

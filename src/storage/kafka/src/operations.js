@@ -12,7 +12,9 @@ exports.waitForConnection = t.typedFunc({
    fn: function waitForConnection (client, log) {
       const clientReady = new Bluebird(function clientReady (resolve) {
          // Just log all errors; this promise will reject based on timeout
-         client.on('error', (err) => log.error({ err }));
+         client.on('error', (err) => {
+            if (err) log.error({ err });
+         });
          check.client.onReady(client, () => resolve(client));
       });
 
