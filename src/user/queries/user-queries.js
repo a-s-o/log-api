@@ -26,12 +26,27 @@ function createModel (sequelize, tableName) {
    }, { tableName });
 }
 
+function update (model, evt) {
+   switch (evt.actionId) {
+
+   // Upsert user documents on signups and edits
+   case 'USER_SIGNUP':
+   case 'USER_EDIT_PROFILE':
+      const row = _.defaults({ id: evt.userId }, evt.data);
+      return Bacon.fromPromise( model.upsert(row) ).map(1);
+
+   default:
+      return Bacon.once(0);
+
+   }
+}
+
 // Setup the user-model and start syncing kafka -> postgres
 const setup = Bluebird.coroutine(function *setupUserModel (config, imports) {
    const tableName = config.tableName;
 
-   const Offset = imports.offset;
-   const LogEvents = imports['log-events'];
+   const Events = imports['log-events'];
+   const offset = imports.offset;
 
    const log = imports.logger.child({ component: 'user-model' });
 
@@ -41,25 +56,15 @@ const setup = Bluebird.coroutine(function *setupUserModel (config, imports) {
    yield model.sync();
 
    // Get syncronization state from portgres
-   // const state = yield Offset.fetch(topicName);
+   const state = yield offset.fetch(tableName);
 
-   LogEvents.asEventStream(0)
-      .flatMap(function handleEvent (evt) {
-         switch (evt.actionId) {
-         case 'USER_SIGNUP':
-         case 'USER_EDIT_PROFILE':
-            const row = _.defaults({ id: evt.userId }, evt.data);
-            const upsert = model.upsert(row).then(() => evt);
-            return Bacon.fromPromise( upsert );
-         default:
-            return Bacon.never();
-         }
-      })
-      .bufferWithTimeOrCount(1000, 10)
-      .onValue((changes) => {
-         // TODO: batch changes; use a sequelize transactions
-         // TODO: save offset state based on last change
-         log.trace({ count: changes.length }, `user-model updated`);
+   // TODO: batch changes; use a sequelize transactions
+   // TODO: save offset state based on last change saved
+   Events.asEventStream( state.offset )
+      .flatMap(update, model)
+      .scan(0, (a, b) => a + b)
+      .onValue(count => {
+         if (count) log.info({ count }, `user-model updated`);
       });
 
    // Output user-model service
