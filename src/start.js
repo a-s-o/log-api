@@ -5,7 +5,7 @@ const cfg = require('../config.js');
 
 const providers = [
    // Main API package
-   { packagePath: './api' },
+   { packagePath: './api', port: 3000 },
 
    // Event stores
    { packagePath: './log/events' },
@@ -19,8 +19,8 @@ const providers = [
 
    // Utils
    { packagePath: './utils/crypto' },
-   { packagePath: './utils/logger', namespace: 'log-api', level: 'trace' },
    { packagePath: './log/file-writer', filename: 'app.log' },
+   { packagePath: './utils/logger', namespace: 'log-api', level: 'trace' },
 
    // Storage / presistence services
    {
@@ -34,6 +34,7 @@ const providers = [
       zookeeperHost: `localhost:${cfg.zookeeper.port}`
    },
    {
+      // Class for writing to and consuming from kafka logs
       packagePath: './storage/event-store'
    },
    {
@@ -48,7 +49,7 @@ const providers = [
 ];
 
 const manifest = architect.resolveConfig(providers, __dirname);
-const app = architect.createApp( manifest );
+const app = module.exports = architect.createApp( manifest );
 
 app.once('error', (err) => {
    throw err;
@@ -59,5 +60,4 @@ app.on('ready', () => {
    const mode = process.env.NODE_ENV || 'dev';
    const services = Object.keys(app.services).toString();
    log.info({ services }, `App Started in "${mode}" mode`);
-   app.services.api.listen(3000, () => log.info('Listening on 3000'));
 });

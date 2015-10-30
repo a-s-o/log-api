@@ -7,9 +7,13 @@ module.exports = function provider (config, imports, provide) {
       throw new Error(`logger needs a namespace`);
    }
 
+   // Suppress logs in test mode
+   const testMode = process.env.NODE_ENV === 'test';
+   const logLevel = testMode ? 'error' : (config.level || 'info');
+
    const appLogger = Bunyan.createLogger({
       name: config.namespace,
-      level: config.level || 'info'
+      level: logLevel
    });
 
    provide(null, {

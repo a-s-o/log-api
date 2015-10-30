@@ -8,6 +8,13 @@ const responseFormatter = require('./responseFormatter');
 
 module.exports = function provider (config, imports, provide) {
 
+   if (typeof config.port !== 'number') {
+      throw new Error('config.port is required');
+   }
+
+   const port = config.port;
+
+   const log = imports.logger.child({ component: 'api' });
    const endpoints = require('./endpoints')(imports);
    const api = koa();
 
@@ -31,6 +38,10 @@ module.exports = function provider (config, imports, provide) {
       this.throw(404, 'Not found');
    });
 
-   provide(null, { api });
+   const server = api.listen(port, () => {
+      log.info(`Listening on ${port}`);
+   });
+
+   provide(null, { api, server });
 
 };

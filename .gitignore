@@ -1,5 +1,6 @@
 node_modules
-binaries
 volumes
-pids
+coverage
+.coverrun
+.coverdata
 *.log

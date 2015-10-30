@@ -6,12 +6,16 @@ const cwd = process.cwd();
 const volumeDir = dir => path.join(cwd, 'volumes', dir);
 const configDir = dir => path.join(cwd, 'conf', dir);
 
-// containerOpts should follow Docker remote API (1.2):
-// docs.docker.com/reference/api/docker_remote_api_v1.20/#create-a-container
+exports.main = {
+   port: 3000
+};
 
 exports.docker = {
    socketPath: '/var/run/docker.sock'
 };
+
+// Note: containerOpts should follow Docker remote API (1.2):
+// docs.docker.com/reference/api/docker_remote_api_v1.20/#create-a-container
 
 ///////////////
 // Zookeeper //
