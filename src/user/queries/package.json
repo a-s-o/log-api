@@ -2,12 +2,15 @@
    "name": "user-queries",
    "main": "user-queries.js",
    "version": "1.0.0",
-   "description": "Provide an interface for querying users",
+   "description": "Maintains state of users and provides methods to query it",
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
       "consumes": [
-         "user-model"
+         "log-events",
+         "sequelize",
+         "offset",
+         "logger"
       ],
       "provides": [
          "user-queries"

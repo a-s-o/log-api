@@ -4,6 +4,7 @@ const _ = require('lodash');
 const t = require('@aso/tcomb');
 const Bluebird = require('@aso/bluebird');
 const createError = require('http-errors');
+const uuid = require('node-uuid');
 
 const EncryptedPassword = t.struct({
    key: t.String,
@@ -12,37 +13,19 @@ const EncryptedPassword = t.struct({
 }, 'EncryptedPassword');
 
 const User = t.struct({
+   id: t.String,
    email: t.String,
    name: t.String,
    password: t.union([t.String, EncryptedPassword])
 });
 
-function conflict () {
-   return Bluebird.reject(createError(409));
-}
-
 module.exports = function provider (config, imports, provide) {
-   if (typeof config.topicName !== 'string') {
-      throw new Error('config.topicName must be string');
-   }
-
-   const topicName = config.topicName;
    const encoding = config.encoding || 'base64';
    const iterations = config.iterations || 10000;
 
-   const Kafka = imports.kafka;
    const Hasher = imports.hasher;
 
    const userQueries = imports['user-queries'];
-   const userProducer = Kafka.createProducer();
-
-   function sendMessage (messages, partition) {
-      return Kafka.sendMessage(userProducer, {
-         topic: topicName,
-         partition: partition || 0,
-         messages: messages
-      });
-   }
 
    function encryptPassword (user) {
       // If user password is encrypted then we can continue
@@ -53,51 +36,53 @@ module.exports = function provider (config, imports, provide) {
       // Encrypt password
       return Hasher({ plaintext: user.password, iterations })
          .then(function update (hashed) {
-            return User.update(user, {
-               password: { $set: {
-                  key: hashed.key.toString(encoding),
-                  salt: hashed.salt.toString(encoding),
-                  iterations: hashed.iterations
-               } }
+            // Serialize an encrypted password
+            const encrypted = EncryptedPassword({
+               key: hashed.key.toString(encoding),
+               salt: hashed.salt.toString(encoding),
+               iterations: hashed.iterations
             });
+
+            // Update user instance
+            return User.update(user, { password: { $set: encrypted } });
          });
 
    }
 
-   function triggerUserSignupEvents (user) {
-      return sendMessage([{
-         eventType: 'userCreated',
-         eventTime: Date.now(),
-         data: user
-      }]);
-   }
-
-   function triggerUserEditEvents (user) {
-      return sendMessage([{
-         eventType: 'userEdited',
-         eventTime: Date.now(),
-         data: user
-      }]);
-   }
-
    User.create = t.typedFunc({
-      inputs: [User],
+      inputs: [t.struct({
+         email: t.String,
+         name: t.String,
+         password: t.String
+      })],
       output: t.Promise, // < User >
-      fn: function saveUser (user) {
-         return userQueries
-            // If a user already exists with the same email, then
-            // throw a conflict 409 error
-            .findOne(user.email)
-            .then(conflict)
-            // If user is not found then we can continue creating the user
-            .catch(err => err.statusCode === 404, _.constant(user))
-            // Encrypt the user's password (string -> EncryptedPassword object)
-            .then(encryptPassword)
-            .tap(triggerUserSignupEvents);
-      }
+      fn: Bluebird.coroutine(function *saveUser (inputs) {
+         const existing = yield userQueries.findOne({
+            where: {
+               email: inputs.email
+            }
+         });
+
+         // If user already exists with the same
+         // email, throw conflict error
+         if (existing) throw createError(409);
+
+         const hashed = yield Hasher({ plaintext: inputs.password, iterations });
+
+         return new User({
+            id: uuid.v4(),
+            email: inputs.email,
+            name: inputs.name,
+            password: EncryptedPassword({
+               key: hashed.key.toString(encoding),
+               salt: hashed.salt.toString(encoding),
+               iterations: hashed.iterations
+            })
+         });
+      })
    });
 
-   User.update = t.typedFunc({
+   User.edit = t.typedFunc({
       inputs: [t.struct({
          email: t.String,
          name: t.maybe(t.String),
@@ -115,15 +100,9 @@ module.exports = function provider (config, imports, provide) {
                password: { $set: request.password || existing.password }
             }))
             // If password was changed, re-encrypt it, else pass-through
-            .then(encryptPassword)
-            .tap(triggerUserEditEvents);
+            .then(encryptPassword);
       }
    });
 
-   // Ensure the producer is ready, then create/check
-   // existence of user topic in kafka before providing
-   // user-commands service
-   return Kafka.createTopic(userProducer, topicName)
-      .then(() => ({ 'user-commands': User }))
-      .nodeify(provide);
+   provide(null, { 'user-commands': User });
 };

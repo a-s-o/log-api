@@ -7,9 +7,8 @@
    "license": "UNLICENSED",
    "plugin": {
       "consumes": [
-         "kafka",
-         "user-queries",
-         "hasher"
+         "hasher",
+         "user-queries"
       ],
       "provides": [
          "user-commands"
