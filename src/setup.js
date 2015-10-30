@@ -2,19 +2,25 @@
 
 const _ = require('lodash');
 const Bluebird = require('@aso/bluebird');
-const Shell = require('shelljs');
+const shell = require('shelljs');
 const path = require('path');
 
 const config = require('../config');
-const dockerProvider = require('./docker');
+const dockerProvider = require('./storage/docker');
 
 // Create directories syncronously
-Shell.mkdir(config.zookeeper.dataDir);
-Shell.mkdir(config.zookeeper.configDir);
-Shell.mkdir(config.kafka.dataDir);
-Shell.mkdir(path.join(config.kafka.dataDir, 'data'));
-Shell.mkdir(path.join(config.kafka.dataDir, 'logs'));
-Shell.mkdir(config.postgres.dataDir);
+const dirs = [
+   // conf
+   config.zookeeper.configDir,
+
+   // volumes
+   config.zookeeper.dataDir,
+   path.join(config.kafka.dataDir, 'data'),
+   path.join(config.kafka.dataDir, 'logs'),
+   config.postgres.dataDir
+];
+
+dirs.forEach(dir => shell.mkdir('-p', dir));
 
 // Execute async setup (return promise for ease of use)
 module.exports = getDocker()
@@ -42,8 +48,8 @@ function createContainer (docker, result, name) {
    }
 
    return Bluebird.resolve(config[name])
-      // TODO: enable pull image
-      .tap(pullImage)
+      // // TODO: enable pull image
+      // .tap(pullImage)
       .then(create)
       .then(function containerCreated (info) {
          result[name] = info;
@@ -57,7 +63,7 @@ function pullImage (cfg) {
    process.stdout.write(`Pulling "${image}"...`);
 
    return new Bluebird(function exec (resolve, reject) {
-      const child = Shell.exec(`docker pull ${image}`, {
+      const child = shell.exec(`docker pull ${image}`, {
          silent: true,
          async: true
       });
