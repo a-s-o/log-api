@@ -23,7 +23,11 @@ module.exports = function *responseFormatter (next) {
       };
 
       // Get nested joi error details
-      const data = ex.data;
-      if (data) this.body.data = data.details || data;
+      const data = (ex.data && ex.data.details) || ex.data;
+      if (data) {
+         this.body.data = data;
+         const betterMessage = _.get(data, '0.message', data.message);
+         if (betterMessage) this.body.message += ': ' + betterMessage;
+      }
    }
 };
