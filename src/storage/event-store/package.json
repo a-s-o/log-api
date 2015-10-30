@@ -1,0 +1,16 @@
+{
+   "name": "event-store",
+   "main": "event-store.js",
+   "version": "1.0.0",
+   "description": "Provides a simple interface to use Kafka topic as event source",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "kafka"
+      ],
+      "provides": [
+         "event-store"
+      ]
+   }
+}
