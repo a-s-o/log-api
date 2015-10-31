@@ -17,8 +17,8 @@ module.exports = function createLog (imports) {
       },
       *handler (inputs) {
          if (inputs.userId) {
-            // If a user id is provided, make sure the user exists, before
-            // allowing logs to be posted
+            // If a user id is provided, make sure the user
+            // exists before allowing logs to be posted
             const user = yield userQueries.findById(inputs.userId);
             if (!user) throw createError(400, userErr);
          }

@@ -7,6 +7,7 @@
     "start": "NODE_ENV=production node src/start.js | bunyan -l info",
     "watch": "node-dev src/start.js | bunyan -l info",
     "setup": "node src/setup.js",
+    "postinstall": "npm run setup",
     "test": "NODE_ENV=test gulp test",
     "unit": "NODE_ENV=test gulp unit",
     "coverage": "NODE_ENV=test gulp coverage"
