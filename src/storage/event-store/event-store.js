@@ -22,17 +22,28 @@ const Bacon = require('baconjs');
 // Types //
 ///////////
 
-const EventStore = t.irreducible('EventStore', function isEventStore (x) {
-   return _.isFunction(x.create) && _.isFunction(x.asEventStream);
-});
-
 const JoiSchema = t.dict(t.String, t.irreducible('Joi', x => x.isJoi));
+
+const EventStore = t.struct({
+   topic             : t.String,
+   partition         : t.Number,
+   client            : t.Any,  // Kafka
+   producer          : t.Any,  // Kafka.Producer
+   createConsumer    : t.Function, // [request, opts] => Kafka.Consumer
+
+   commonSchema      : JoiSchema,
+   events            : t.dict(t.String, t.Object),
+   strict            : t.Boolean,
+
+   typeProperty      : t.String,
+   metadataProperty  : t.String
+}, 'EventStore');
 
 ////////////////////
 // Implementation //
 ////////////////////
 
-const Proto = {
+_.extend(EventStore.prototype, {
    create: Bluebird.coroutine(function *create (properties) {
       const eventName = properties[this.typeProperty];
       const validated = this.validate(eventName, properties);
@@ -57,17 +68,15 @@ const Proto = {
    validate (eventName, properties) {
       const eventDefinition = this.events[eventName];
 
-      // Unknown event
-      if (!eventDefinition) {
-         // Not in strict mode, so let it pass
-         if (!this.strict) return properties;
-
-         // Strict - block unknown events
+      // Unknown event in strict mode - block it
+      if (!eventDefinition && this.strict) {
          throw new Error(`Event "${eventName}" does not exist`);
       }
 
-      // Known event - validate properties
-      const check = joi.validate(properties, eventDefinition.schema, {
+      // All events get validated; either their own schema or common props
+      const schema = _.get(eventDefinition, 'schema', this.commonSchema);
+
+      const check = joi.validate(properties, schema, {
          allowUnknown: this.strict === false,
          stripUnknown: this.strict === true,
          convert: true,
@@ -104,7 +113,7 @@ const Proto = {
             return parsed;
          });
    }
-};
+});
 
 /////////////
 // Factory //
@@ -130,19 +139,21 @@ const eventStoreFactory = t.typedFunc({
 
       const commonProps = config.commonProperties || {};
 
-      const store = _.create(Proto, {
+      const store = new EventStore({
          topic: config.topic,
          partition: 0,
-         client: client,
-         producer: producer,
+
+         strict: config.strict !== false,
+         commonSchema: commonProps,
          events: _.mapValues(events, (schema) => ({
             schema: _.extend({}, commonProps, schema)
          })),
 
          typeProperty: config.typeProperty || 'type',
          metadataProperty: config.metadataProperty || '_kafka',
-         strict: config.strict !== false,
 
+         client: client,
+         producer: producer,
          createConsumer (request, options) {
             return Kafka.createConsumer(client, request, options);
          }

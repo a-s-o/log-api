@@ -1,6 +1,6 @@
 'use strict';
 
-const architect = require('architect');
+const architect = require('@aso/architect');
 const cfg = require('../config.js');
 
 const providers = [
