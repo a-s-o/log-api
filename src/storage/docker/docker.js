@@ -1,9 +1,12 @@
 'use strict';
 
-// Purpose:
-// - Provides an interface for dealing with docker
-// - Prevents app from running if docker cannot be accessed
-//   or installed version is incompatible (requires docker API 1.x)
+// Interface (docker)
+// ---
+// Module:Docker = {
+//    containerInfo [name:String]                  -> Promise < Docker.Info >
+//    createContainer [name:String, opts:Object]   -> Promise < Docker.Info >
+//    startContainer [name:String]                 -> Promise < Docker.Info >
+// }
 
 const _ = require('lodash');
 const Bluebird = require('@aso/bluebird');
@@ -37,6 +40,7 @@ const setup = Bluebird.coroutine(function *setup (config) {
    const Docker = types.Docker;
 
    // Partially apply the docker client to all public methods
+   // client never has to be supplied by user
    const client = factories.Client({ socketPath: config.socketPath });
    Docker.containerInfo = _.partial(ops.containerInfo, client);
    Docker.createContainer = _.partial(ops.createContainer, client);

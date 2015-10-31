@@ -1,4 +1,10 @@
 'use strict';
+
+// Interface (sequelize)
+// ---
+// Module:Sequelize - an instance of Sequelize client
+//                    see http://docs.sequelizejs.com
+
 const _ = require('lodash');
 const t = require('@aso/tcomb');
 const Bluebird = require('@aso/bluebird');

@@ -1,5 +1,29 @@
 'use strict';
 
+// Interface (kafka)
+// ---
+// Module:Kafka = {
+//    createClient [name:String]          -> Kafka.Client
+//
+//    createConsumer [                    -> Kafka.Consumer
+//       client:Kafka,
+//       req:Kafka.FetchRequest,
+//       opts:Object
+//    ]
+//
+//    createProducer  [client:Kafka]      -> Kafka.Producer
+//
+//    createTopic  [                      -> Promise < response:String >
+//       producer:Kafka.Producer,
+//       name:String
+//    ]
+//
+//    sendMessage [                       -> Promise < response:String >
+//       producer:Kafka.Producer,
+//       request:Kafka.ProduceRequest
+//    ]
+// }
+
 const _ = require('lodash');
 const Bluebird = require('@aso/bluebird');
 

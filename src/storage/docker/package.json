@@ -2,7 +2,7 @@
    "name": "docker",
    "main": "docker.js",
    "version": "1.0.0",
-   "description": "",
+   "description": "Interface for dealing with docker",
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {

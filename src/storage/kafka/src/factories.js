@@ -16,7 +16,7 @@ exports.Client = t.typedFunc({
 });
 
 exports.Producer = t.typedFunc({
-   inputs: [types, t.struct({})],
+   inputs: [types.Kafka, t.struct({})],
    output: types.Producer,
    fn: function producerFactory (client, opts) {
       return new NodeKafka.Producer(client, opts);
@@ -24,7 +24,7 @@ exports.Producer = t.typedFunc({
 });
 
 exports.Consumer = t.typedFunc({
-   inputs: [types, t.list(types.FetchRequest), t.Object],
+   inputs: [types.Kafka, t.list(types.FetchRequest), t.Object],
    output: types.Consumer,
    fn: function consumerFactory (client, requests, opts) {
       return new NodeKafka.Consumer(client, requests, opts);

@@ -1,17 +1,22 @@
 'use strict';
 
+// Interface (event-store)
+// ---
+// Module:EventStore = {
+//    create [config:Object, events:Object]     -> Promise < EventStore >
+// }
+//
+// class EventStore {
+//    create [properties:Obj]                   -> Promise < Obj >
+//    validate [eventName:Str, properties:Obj]  -> Obj
+//    asEventStream [offset:Num]                -> EventStream
+// };
+
 const _ = require('lodash');
 const t = require('@aso/tcomb');
 const Bluebird = require('@aso/bluebird');
 const joi = require('joi');
 const Bacon = require('baconjs');
-
-// Interface = {
-//    create (eventName:Str, properties:Obj) {} -> Promise < Obj >
-//    validate (eventName:Str, properties:Obj) {} -> Obj
-//    asEventStream (offset:Num) {} -> EventStream
-// };
-
 
 ///////////
 // Types //
@@ -104,7 +109,6 @@ const Proto = {
 /////////////
 // Factory //
 /////////////
-
 
 const Configuration = t.struct({
    topic: t.enums.of('logs users'),
