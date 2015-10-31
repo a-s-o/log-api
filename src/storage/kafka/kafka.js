@@ -2,7 +2,7 @@
 
 // Interface (kafka)
 // ---
-// Module:Kafka = {
+// Service:Kafka = {
 //    createClient [name:String]          -> Kafka.Client
 //
 //    createConsumer [                    -> Kafka.Consumer

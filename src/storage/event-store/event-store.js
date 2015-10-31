@@ -2,7 +2,7 @@
 
 // Interface (event-store)
 // ---
-// Module:EventStore = {
+// Service:EventStore = {
 //    create [config:Object, events:Object]     -> Promise < EventStore >
 // }
 //
@@ -27,8 +27,8 @@ const JoiSchema = t.dict(t.String, t.irreducible('Joi', x => x.isJoi));
 const EventStore = t.struct({
    topic             : t.String,
    partition         : t.Number,
-   client            : t.Any,  // Kafka
-   producer          : t.Any,  // Kafka.Producer
+   client            : t.Any,    // Kafka
+   producer          : t.Any,    // Kafka.Producer
    createConsumer    : t.Function, // [request, opts] => Kafka.Consumer
 
    commonSchema      : JoiSchema,

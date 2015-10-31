@@ -2,7 +2,7 @@
 
 // Interface (docker)
 // ---
-// Module:Docker = {
+// Service:Docker = {
 //    containerInfo [name:String]                  -> Promise < Docker.Info >
 //    createContainer [name:String, opts:Object]   -> Promise < Docker.Info >
 //    startContainer [name:String]                 -> Promise < Docker.Info >

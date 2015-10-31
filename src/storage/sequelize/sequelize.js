@@ -2,7 +2,7 @@
 
 // Interface (sequelize)
 // ---
-// Module:Sequelize - an instance of Sequelize client
+// Service:Sequelize - an instance of Sequelize client
 //                    see http://docs.sequelizejs.com
 
 const _ = require('lodash');
