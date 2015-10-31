@@ -9,7 +9,7 @@ const uuid = require('node-uuid');
 const Bacon = require('baconjs');
 const request = require('co-supertest');
 
-describe('api [e2e]', () => {
+describe('log-api [e2e]', () => {
    let server;
 
    before(function (done) {
