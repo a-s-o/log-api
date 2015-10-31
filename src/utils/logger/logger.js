@@ -13,7 +13,10 @@ module.exports = function provider (config, imports, provide) {
 
    const appLogger = Bunyan.createLogger({
       name: config.namespace,
-      level: logLevel
+      level: logLevel,
+      serializers: {
+         err: err => err.stack
+      }
    });
 
    provide(null, {

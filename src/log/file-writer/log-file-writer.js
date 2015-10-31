@@ -8,12 +8,15 @@ const reverseReader = require('reverse-line-reader');
 const factories = require('./src/factories');
 
 module.exports = function provider (config, imports, provide) {
-   if (typeof config.filename !== 'string') {
+   const testMode = process.env.NODE_ENV === 'test';
+   const filename = testMode ? 'test.log' : config.filename;
+
+   if (typeof filename !== 'string') {
       throw new Error('config.filename is required');
    }
 
    const LogEvents = imports['log-events'];
-   const writeToFile = factories.writeToFile( config.filename );
+   const writeToFile = factories.writeToFile( filename );
 
    // Writing starts after reading the offset from the file
    // so we can pick up where we left off
@@ -23,7 +26,7 @@ module.exports = function provider (config, imports, provide) {
          .onValue(function noop () {}); // No side-effects required
    });
 
-   // Reads the log file `config.filename` in reverse
+   // Reads the log file `filename` in reverse
    // until a _kafka log is found; then uses thats the offset
    // to start appending
    function getLatestOffset (line) {
@@ -42,7 +45,7 @@ module.exports = function provider (config, imports, provide) {
       }
    }
 
-   // Not able to read `config.filename` or did not find a
+   // Not able to read `filename` or did not find a
    // kafka log in the file, so start the writer at offset 0
    function done () {
       startWriter( 0 );
@@ -52,10 +55,10 @@ module.exports = function provider (config, imports, provide) {
    try {
       // statSync will throw if filename does not exist, therefore,
       // no need to read the offset on disk
-      fs.statSync(config.filename);
+      fs.statSync(filename);
 
       // Read the offset on disk
-      reverseReader.eachLine(config.filename, getLatestOffset).then(done);
+      reverseReader.eachLine(filename, getLatestOffset).then(done);
    } catch (ex) {
       done();
    }

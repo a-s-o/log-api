@@ -12,10 +12,8 @@ module.exports = function provider (config, imports, provide) {
       throw new Error('config.port is required');
    }
 
-   const port = config.port;
-
    const log = imports.logger.child({ component: 'api' });
-   const endpoints = require('./endpoints')(imports);
+   const endpoints = require('./endpoints')(imports, log);
    const api = koa();
 
    api.use(body());
@@ -38,10 +36,15 @@ module.exports = function provider (config, imports, provide) {
       this.throw(404, 'Not found');
    });
 
+   // Increment server port for tests, so e2e tests
+   // can be run at the same time
+   const testMode = process.env.NODE_ENV === 'test';
+   const port = testMode ? config.port + 1 : config.port;
+
+   // Start the server
    const server = api.listen(port, () => {
       log.info(`Listening on ${port}`);
+      provide(null, { api, server });
    });
-
-   provide(null, { api, server });
 
 };
