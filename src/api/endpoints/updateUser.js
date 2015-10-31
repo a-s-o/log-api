@@ -18,12 +18,14 @@ module.exports = function updateUser (imports) {
 
          // Replace the inputs password with the encrypted version
          // so that we don't publish a plaintext password in event
-         inputs.password = user.password;
+         if (inputs.password) {
+            inputs.password = user.password;
+         }
 
          // Create a log entry
          yield events.create({
             actionId: 'USER_EDIT_PROFILE',
-            userId: id,
+            userId: user.id,
             data: inputs
          });
 

@@ -7,7 +7,7 @@ const _ = require('lodash');
 const joi = require('joi');
 const sinon = require('sinon');
 
-const validator = require('../validator.js');
+const validator = require('../endpoints/validator.js');
 
 const imports = {};
 const log = { error: sinon.spy() };
@@ -32,12 +32,6 @@ describe('validator', () => {
             throw err;
          }
       };
-   });
-
-   it('is curried', () => {
-      validator.should.be.a.Function();
-      validator(imports).should.be.a.Function();
-      validator(imports, log).should.be.a.Function();
    });
 
    it('should return a wrapped generator', () => {
@@ -93,6 +87,12 @@ describe('validator', () => {
       (function * () {
          yield* typeErr.call(ctx);
       }).should.throw();
+   });
+
+   it('is curried', () => {
+      validator.should.be.a.Function();
+      validator(imports).should.be.a.Function();
+      validator(imports, log).should.be.a.Function();
    });
 
 });
