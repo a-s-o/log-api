@@ -30,10 +30,10 @@ const Bluebird = require('@aso/bluebird');
 const factories = require('./src/factories');
 const types = require('./src/types');
 const operations = require('./src/operations');
-const checks = require('./src/checks');
 
 const setup = Bluebird.coroutine(function *setup (config, imports) {
    const docker = imports.docker;
+   const log = imports.logger.child({ component: 'kafka' });
 
    // Start the necessary docker containers
    yield docker.startContainer( config.zookeeperContainer );
@@ -62,22 +62,12 @@ const setup = Bluebird.coroutine(function *setup (config, imports) {
    Kafka.sendMessage = operations.sendMessage;
    Kafka.createTopic = operations.createTopic;
 
-   // Constant condition is okay as the setup promise
-   // times out in the provider below
-   while (true) {  // eslint-disable-line no-constant-condition
-      try {
-         // Create client and wait for it to be ready
-         const tempClient = Kafka.createClient('log-api-init');
-         yield _.partial(checks.client.onReady, tempClient);
-         yield _.bind(tempClient.close, tempClient);
+   // Wait for client to be ready
+   log.info('Waiting (upto 20s) for Kafka to get ready');
+   yield operations.awaitConnection(Kafka, log, 20);
+   log.info('Kafka client is ready');
 
-         // Provide
-         return { kafka: Kafka };
-      } catch (ex) {
-         // Check again after 1s
-         yield Bluebird.delay(1000);
-      }
-   }
+   return { kafka: Kafka };
 
 });
 
@@ -86,11 +76,5 @@ module.exports = function provider (config, imports, provide) {
       throw new Error('config.zookeeperHost is required');
    }
 
-   const log = imports.logger.child({ component: 'kafka' });
-   log.info('Waiting (upto 10s) for Kafka to get ready');
-
-   return setup(config, imports)
-      .timeout(10000, 'Kafka client timed out [10s]')
-      .tap(() => log.info('Kafka client is ready'))
-      .nodeify(provide);
+   return setup(config, imports).nodeify(provide);
 };
