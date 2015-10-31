@@ -6,26 +6,6 @@ const Bluebird = require('@aso/bluebird');
 const check = require('./checks');
 const types = require('./types');
 
-exports.waitForConnection = t.typedFunc({
-   inputs: [types.Kafka, t.Any],
-   output: t.Promise, // < Kafka >
-   fn: function waitForConnection (client, log) {
-      const clientReady = new Bluebird(function clientReady (resolve) {
-         // Just log all errors; this promise will reject based on timeout
-         client.on('error', (err) => {
-            if (err) log.error({ err });
-         });
-         check.client.onReady(client, () => resolve(client));
-      });
-
-      log.info('Waiting (upto 10s) for kafka to get ready');
-
-      return clientReady
-         .timeout(10000, 'kafka client timed out [10s]')
-         .tap(() => log.info('kafka client is ready'));
-   }
-});
-
 exports.createTopic = t.typedFunc({
    inputs: [types.Producer, t.String],
    output: t.Promise,  // < Response:String >

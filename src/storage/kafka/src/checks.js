@@ -19,6 +19,7 @@ function brokerOnReady (client, callback) {
       callback();
    } else {
       client.on('brokersChanged', callback);
+      client.on('error', (err) => callback(err));
    }
 }
 
@@ -30,6 +31,7 @@ exports.client = {
 
       if (!client.ready) {
          client.connect();
+         client.on('error', (err) => callback(err));
          client.on('ready', () => brokerOnReady(client, callback));
       } else {
          brokerOnReady(client, callback);

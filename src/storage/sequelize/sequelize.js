@@ -1,7 +1,7 @@
 'use strict';
 const _ = require('lodash');
 const t = require('@aso/tcomb');
-
+const Bluebird = require('@aso/bluebird');
 const Sequelize = require('sequelize');
 
 function createClient (cfg, log) {
@@ -9,20 +9,41 @@ function createClient (cfg, log) {
    const user = cfg.username;
    const pass = cfg.password;
 
-   const client = new Sequelize(db, user, pass, {
+   return new Sequelize(db, user, pass, {
       host: 'localhost',
       port: cfg.port,
       dialect: 'postgres',
+      logging: log.trace.bind(log), // Log using bunyan
       pool: {
          max: 5,
          min: 0,
          idle: 10000
-      },
-      logging: log.trace.bind(log)
+      }
    });
-
-   return client;
 }
+
+const setup = Bluebird.coroutine(function *setup (cfg, imports, log) {
+   const docker = imports.docker;
+
+   yield docker.startContainer( cfg.postgresContainer );
+
+   // Constant condition is okay as the setup promise
+   // times out in the provider below
+   while (true) {  // eslint-disable-line no-constant-condition
+      try {
+         // Create the client and wait for authentication
+         const client = createClient(cfg, log);
+         yield client.authenticate();
+
+         // Provide
+         return { sequelize: client };
+      } catch (ex) {
+         yield Bluebird.delay(1000);
+      }
+   }
+
+});
+
 
 /////////////
 // Provide //
@@ -42,16 +63,13 @@ module.exports = t.typedFunc({
    inputs: [Configuration, t.Object, t.Function],
    output: t.Promise,
    fn: function provider (cfg, imports, provide) {
-      const docker = imports.docker;
       const log = imports.logger.child({ component: 'sequelize' });
 
-      function output (client) {
-         return { sequelize: client };
-      }
+      log.info('Waiting (upto 10s) for sequelize client to start');
 
-      return docker.startContainer( cfg.postgresContainer )
-         .then(() => createClient(cfg, log))
-         .then(output)
+      return setup(cfg, imports, log)
+         .timeout(10000, 'Sequelize client start timed out [10s]')
+         .tap(() => log.info('Sequelize is ready'))
          .nodeify(provide);
    }
 });
