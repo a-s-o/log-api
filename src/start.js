@@ -4,7 +4,7 @@ const architect = require('architect');
 const cfg = require('../config.js');
 
 const providers = [
-   // Main API package
+   // Main API
    { packagePath: './api', port: 3000 },
 
    // Event stores
@@ -57,7 +57,7 @@ app.once('error', (err) => {
 
 app.on('ready', () => {
    const log = app.services.logger.child({ component: 'app' });
-   const mode = process.env.NODE_ENV || 'dev';
    const services = Object.keys(app.services).toString();
+   const mode = process.env.NODE_ENV || 'development';
    log.info({ services }, `App Started in "${mode}" mode`);
 });
