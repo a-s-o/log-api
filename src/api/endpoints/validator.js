@@ -3,13 +3,16 @@
 const _ = require('lodash');
 const Bluebird = require('@aso/bluebird');
 const joi = require('joi');
-const createError = require('http-errors');
 
-module.exports = function validator (endpoint) {
+function validator (imports, log, provider) {
+   // Get the endpoint, provide the imports and logger to it
+   const endpoint = provider(imports, log);
+   const name = provider.displayName || provider.name;
    const handler = Bluebird.coroutine(endpoint.handler);
+   const inputs = endpoint.inputs || {};
 
    return function *wrapper () {
-      const check = joi.validate(this.request.body || {}, endpoint.inputs, {
+      const check = joi.validate(this.request.body || {}, inputs, {
          stripUnknown: true,
          convert: true,
          abortEarly: true
@@ -28,13 +31,14 @@ module.exports = function validator (endpoint) {
       try {
          yield handler.apply(this, args);
       } catch (ex) {
-         if (ex.expose) {
-            throw ex;
-         }
+         // If a client error is thrown; simply re-throw
+         if (ex.expose) throw ex;
 
-         console.log(ex.stack || ex);
-         throw createError(500);
-
+         // Log internal errors
+         log.error({ err: ex }, `Problem in endpoint ${name}'s handler`);
+         this.throw(500);
       }
    };
-};
+}
+
+module.exports = _.curry(validator);

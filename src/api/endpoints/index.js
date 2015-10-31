@@ -1,11 +1,11 @@
 'use strict';
 
-const withValidation = require('./validator');
 
-module.exports = function setup (imports) {
+module.exports = function setup (imports, log) {
+   const withValidation = require('./validator')(imports, log);
    return {
-      createLog: withValidation( require('./createLog')(imports) ),
-      createUser: withValidation( require('./createUser')(imports) ),
-      updateUser: withValidation( require('./updateUser')(imports) )
+      createLog: withValidation( require('./createLog') ),
+      createUser: withValidation( require('./createUser') ),
+      updateUser: withValidation( require('./updateUser') )
    };
 };
