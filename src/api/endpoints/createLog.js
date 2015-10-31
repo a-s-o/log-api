@@ -3,7 +3,7 @@
 const joi = require('joi');
 const createError = require('http-errors');
 
-module.exports = function setup (imports) {
+module.exports = function createLog (imports) {
    const events = imports['log-events'];
    const userQueries = imports['user-queries'];
 

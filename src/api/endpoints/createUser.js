@@ -2,7 +2,7 @@
 const _ = require('lodash');
 const joi = require('joi');
 
-module.exports = function setup (imports) {
+module.exports = function createUser (imports) {
    const User = imports['user-commands'];
    const events = imports['log-events'];
 
