@@ -33,7 +33,7 @@ module.exports = function provider (config, imports, provide) {
    // }));
 
    api.use(function *notFound () {
-      this.throw(404, 'Not found');
+      this.throw(404, 'Route not found');
    });
 
    // Increment server port for tests, so e2e tests
