@@ -1,6 +1,6 @@
 {
   "name": "log-api",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Sample log api",
   "main": "src/start.js",
   "scripts": {
@@ -10,7 +10,10 @@
     "postinstall": "npm run setup",
     "test": "NODE_ENV=test gulp test",
     "unit": "NODE_ENV=test gulp unit",
-    "coverage": "NODE_ENV=test gulp coverage"
+    "e2e": "NODE_ENV=test gulp e2e",
+    "coverage": "NODE_ENV=test gulp coverage",
+    "stop": "docker stop log-api-postgres log-api-kafka log-api-zookeeper; exit 0",
+    "destroy": "docker rm -f log-api-postgres log-api-kafka log-api-zookeeper; exit 0"
   },
   "author": "Amandeep",
   "license": "UNLICENSED",
@@ -40,7 +43,6 @@
     "co-mocha": "^1.1.2",
     "co-supertest": "0.0.10",
     "gulp": "^3.9.0",
-    "gulp-coverage": "^0.3.38",
     "gulp-istanbul": "^0.10.2",
     "gulp-load-plugins": "^1.0.0",
     "gulp-mocha": "^2.1.3",

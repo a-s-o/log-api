@@ -28,7 +28,7 @@ module.exports = getDocker()
    .then(logContainerIDs);
 
 function getDocker () {
-   return dockerProvider(config.docker, {}).then(provided => provided.docker);
+   return dockerProvider(config.docker).then(provided => provided.docker);
 }
 
 function createContainers (docker) {

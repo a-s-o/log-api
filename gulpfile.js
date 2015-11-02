@@ -12,7 +12,7 @@ const allTests = [e2eTests, unitTests];
 
 gulp.task('pre-coverage', function () {
    const isparta = require('isparta');
-   return gulp.src([allJS])
+   return gulp.src([allJS, '!**/tests/**/*.js'])
       // Covering files
       .pipe(istanbul({
          includeUntested: true,
@@ -22,8 +22,9 @@ gulp.task('pre-coverage', function () {
       .pipe(istanbul.hookRequire());
 });
 
+// Create a coverage report
 gulp.task('coverage', ['pre-coverage'], function () {
-   return gulp.src([unitTests])
+   return gulp.src([unitTests, e2eTests])
       .pipe($.mocha({ reporter: 'spec' }))
       // Creating the reports after tests ran
       .pipe(istanbul.writeReports());
@@ -31,6 +32,7 @@ gulp.task('coverage', ['pre-coverage'], function () {
       // .pipe(istanbul.enforceThresholds({ thresholds: { global: 90 } }))
 });
 
+// Run the all tests [unit + e2e]
 gulp.task('test', function () {
    return gulp.src(allTests)
       .pipe($.mocha({ reporter: 'spec' }))
@@ -38,6 +40,16 @@ gulp.task('test', function () {
       .on('end', () => process.exit(0));
 });
 
+// Run e2e tests
+gulp.task('e2e', function () {
+   return gulp.src(e2eTests)
+      .pipe($.mocha({ reporter: 'spec' }))
+      .on('error', err => { throw err; })
+      .on('end', () => process.exit(0));
+});
+
+
+// Run the unit tests in watch mode
 gulp.task('unit', function () {
    function watch () {
       gulp.watch(allJS, function () {
