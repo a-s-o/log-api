@@ -6,11 +6,37 @@ require('should');
 const _ = require('lodash');
 const joi = require('joi');
 const sinon = require('sinon');
+const Bluebird = require('@aso/bluebird');
+const createError = require('http-errors');
 
 const validator = require('../endpoints/validator.js');
 
 const imports = {};
 const log = { error: sinon.spy() };
+
+// Test helpers
+
+function createContext (obj) {
+   return _.defaults(obj || {}, {
+      'request': {},
+      'throw': (err) => { throw err; }
+   });
+}
+
+function throwInsideHandler (ex) {
+   const wrapped = validator(imports, log, () => ({
+      *handler () { throw ex; }
+   }));
+   return wrapped.call(createContext());
+}
+
+
+const fish = Bluebird.coroutine(function * (it) {
+   try { yield it; } catch (ex) { return ex; }
+   throw new Error('Expected to catch an error but no fish!');
+});
+
+// Tests
 
 describe('validator', () => {
    let wrapped, ctx, args;
@@ -26,12 +52,7 @@ describe('validator', () => {
             this.body = 'MOCK';
          }
       }));
-      ctx = {
-         'request': {},
-         'throw': (err) => {
-            throw err;
-         }
-      };
+      ctx = createContext();
    });
 
    it('should return a wrapped generator', () => {
@@ -47,12 +68,10 @@ describe('validator', () => {
       ctx.body.should.be.exactly('MOCK');
    });
 
-   it('throws on invalid outputs [400]', () => {
-      (function * () {
-         // An incorrect email is being provided
-         ctx.request.body = { number: 123, email: 'test' };
-         yield* wrapped.call(ctx);
-      }).should.throw(400);
+   it('throws on invalid outputs [400]', function * () {
+      ctx.request.body = { number: 123, email: 'test' };
+      const ex = yield fish( wrapped.call(ctx) );
+      ex.should.equal(400);
    });
 
    it('provides converted values to the endpoint handler', function * () {
@@ -76,17 +95,21 @@ describe('validator', () => {
       args[2].should.be.exactly('another-param');
    });
 
+   it('catches client errors thrown in handler [< 500]', function * () {
+      const error400 = createError(400);
+      const ex400 = yield fish( throwInsideHandler(createError(error400)) );
+      ex400.should.be.exactly(error400);
+      ex400.statusCode.should.be.exactly(400);
 
-   it.skip('catches errors thrown in handler', () => {
-      const typeErr = validator(imports, log, () => ({
-         *handler () {
-            throw new TypeError('it could happen');
-         }
-      }));
+      const error409 = createError(409);
+      const ex409 = yield fish( throwInsideHandler(createError(error409)) );
+      ex409.should.be.exactly(error409);
+      ex409.statusCode.should.be.exactly(409);
+   });
 
-      (function * () {
-         yield* typeErr.call(ctx);
-      }).should.throw();
+   it('catches server-side errors in handler [500]', function * () {
+      const ex = yield fish( throwInsideHandler(new TypeError('could happen')) );
+      ex.should.be.exactly(500);
    });
 
    it('is curried', () => {

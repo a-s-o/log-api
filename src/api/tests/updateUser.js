@@ -35,25 +35,13 @@ describe('updateUser', () => {
       updateUser.inputs.should.have.a.property('password');
    });
 
-   it('calls user-commands.edit() with id, email and password', function * () {
-      yield updateUser.handler({ name: 'new name', password: 'pass' }, 345);
+   it('calls user-commands.edit() with id, name and password', function * () {
+      userEditStub.reset();
+      const inputs = { name: 'new name', password: 'pass' };
+      yield updateUser.handler(Object.assign({}, inputs), 345);
       userEditStub.callCount.should.be.exactly(1);
 
-      const callToEdit = userEditStub.getCall(0);
-      callToEdit.args[0].should.be.exactly(345);
-      callToEdit.args[1].should.be.an.Object();
-      callToEdit.args[1].should.be.have.a.property('name', 'new name');
-      callToEdit.args[1].should.be.have.a.property('password', 'pass');
-   });
-
-   it('does not pass email to user-commands.edit()', function * () {
-      yield updateUser.handler({ email: 'new@email.com' }, 345);
-      userEditStub.callCount.should.be.exactly(1);
-
-      const callToEdit = userEditStub.getCall(0);
-      callToEdit.args[0].should.be.exactly(345);
-      callToEdit.args[1].should.be.an.Object();
-      callToEdit.args[1].should.not.have.a.property('email');
+      userEditStub.getCall(0).args.should.deepEqual([345, inputs]);
    });
 
    it('creates a USER_EDIT_PROFILE log event', function * () {
@@ -64,8 +52,6 @@ describe('updateUser', () => {
       arg.should.have.a.property('actionId', 'USER_EDIT_PROFILE');
       arg.should.have.a.property('userId', fakeUser.id);
       arg.data.should.have.a.property('name', 'new name');
-
-
    });
 
    it('log event should not have plaintext password', function * () {
@@ -78,11 +64,10 @@ describe('updateUser', () => {
       password.should.have.a.property('key', fakeUser.password.key);
    });
 
-
-   // it('sets the response on the body', function * () {
-   //    const ctx = {};
-   //    yield updateUser.handler.call(ctx);
-   //    ctx.body.should.be.an.Object();
-   // });
+   it('sets the response on the body', function * () {
+      const ctx = {};
+      yield updateUser.handler.call(ctx, {});
+      ctx.body.should.be.an.Object();
+   });
 
 });

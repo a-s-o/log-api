@@ -19,5 +19,4 @@ describe('api/endpoints', function () {
       endpoints.createUser.should.be.a.Function();
       endpoints.updateUser.should.be.a.Function();
    });
-
 });
