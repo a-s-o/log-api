@@ -213,6 +213,7 @@ describe('log-api [e2e]', () => {
          it('creates a USER_EDIT_PROFILE log entry', function * () {
             const update = { name: 'Mr. Even Newer', password: '2137012703182' };
             yield put(userData.id, update).expect(200);
+            yield flush();
 
             const lastLine = yield lastLogLine();
             lastLine.actionId.should.be.exactly('USER_EDIT_PROFILE');
