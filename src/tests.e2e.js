@@ -6,8 +6,27 @@ require('should');
 const _ = require('lodash');
 const fs = require('fs');
 const uuid = require('node-uuid');
+const Bluebird = require('@aso/bluebird');
 const Bacon = require('baconjs');
 const request = require('co-supertest');
+
+// Get the last line from test.log
+function lastLogLine () {
+   const log = fs.readFileSync('test.log', 'utf-8');
+   const lines = log.split('\n').filter(x => !!x);
+   return JSON.parse(lines[lines.length - 1]);
+}
+
+// Helper for generating a random user doc
+function randomUser (obj) {
+   const random = uuid.v4().replace('-', '');
+   return _.extend({
+      email: random.slice(0, 6) + '@example.com',
+      name: 'Mr. ' + random.slice(0, 6),
+      password: random.slice(0, 10)
+   }, obj);
+}
+
 
 describe('log-api [e2e]', () => {
    let server;
@@ -56,28 +75,170 @@ describe('log-api [e2e]', () => {
       });
 
       it('appends log entry to end of test.log', function * () {
-         const id = uuid.v4();
-         yield post({ actionId: id }).expect(200);
+         const arbitrary = uuid.v4();
+         yield post({ actionId: arbitrary }).expect(200);
+         yield Bluebird.delay(2);
 
-         // Get the last line from test.log
-         const log = fs.readFileSync('test.log', 'utf-8');
-         const lines = log.split('\n').filter(x => !!x);
-         const last = JSON.parse(lines[lines.length - 1]);
-
-         last.actionId.should.equal(id);
+         lastLogLine().actionId.should.equal( arbitrary );
       });
 
    });
 
    describe('POST /classes/user', () => {
+      let agent;
 
-      it('test');
+      before(() => {
+         agent = request.agent(server);
+      });
+
+      function post (content) {
+         return agent.post('/classes/user')
+            .send(content || null)
+            .expect('Content-Type', /json/);
+      }
+
+      describe('valid request', () => {
+
+         // { email:String, name:String, password:String }
+         let userData;
+
+         before(function * () {
+            userData = randomUser();
+         });
+
+         it('response with a 200 status on save', function * () {
+            yield post(userData).expect(200);
+         });
+
+         it('creates a USER_SIGNUP log entry', function * () {
+            const lastLine = yield lastLogLine();
+            lastLine.actionId.should.be.exactly('USER_SIGNUP');
+            lastLine.userId.should.be.a.String();
+
+            const logEntry = lastLine.data;
+            logEntry.should.be.an.Object();
+            logEntry.email.should.be.exactly(userData.email);
+            logEntry.name.should.be.exactly(userData.name);
+
+            const password = logEntry.password;
+            password.should.be.an.Object();
+            password.key.should.be.a.String();
+            password.salt.should.be.a.String();
+            password.iterations.should.be.a.Number();
+         });
+
+         it('rejects second posting due to conflict', function * () {
+            // Wait for changes to presist to postgres
+            yield Bluebird.delay(1100);
+            yield post(userData).expect(409);
+         });
+
+      });
+
+      describe('rejects bad requests', () => {
+
+         it('missing inputs', function * () {
+            yield post( randomUser({ email: null }) ).expect(400);
+            yield post( randomUser({ name: null }) ).expect(400);
+            yield post( randomUser({ password: null }) ).expect(400);
+         });
+
+         it('short password', function * () {
+            yield post( randomUser({ password: 'passwo' }) ).expect(400);
+         });
+
+         it('bad email', function * () {
+            yield post( randomUser({ email: 'bad@mail' }) ).expect(400);
+         });
+
+      });
 
    });
 
    describe('PUT /classes/user/:id', () => {
 
-      it('test');
+      let agent;
+
+      before(function * () {
+         agent = request.agent(server);
+      });
+
+      function put (id, content) {
+         return agent.put(`/classes/user/${id}`)
+            .send(content || null)
+            .expect('Content-Type', /json/);
+      }
+
+
+      describe('for existing users', () => {
+
+         // { id:String, name:String, email:String }
+         let userData;
+
+         before(function * () {
+            // Generate a random user
+            const user = randomUser();
+
+            // Post the random user so we can
+            // try to apply updates against it
+            const resp = yield agent.post('/classes/user')
+               .send(user)
+               .expect('Content-Type', /json/)
+               .expect(200);
+
+            // Wait for flush
+            yield Bluebird.delay(1100);
+
+            // Merge response so we have access to the user's id
+            userData = resp.body.result;
+         });
+
+         it('never updates email', function * () {
+            const update = { name: 'Mr. New', email: 'new@email.com' };
+            const resp = yield put(userData.id, update).expect(200);
+            const result = resp.body.result;
+
+            // The name should update
+            result.name.should.be.exactly(update.name);
+
+            // The email should not update
+            result.email.should.be.exactly(userData.email);
+            result.email.should.not.be.exactly(update.email);
+         });
+
+         it('creates a USER_EDIT_PROFILE log entry', function * () {
+            const update = { name: 'Mr. Even Newer', password: '2137012703182' };
+            yield put(userData.id, update).expect(200);
+
+            const lastLine = yield lastLogLine();
+            lastLine.actionId.should.be.exactly('USER_EDIT_PROFILE');
+            lastLine.userId.should.be.exactly(userData.id);
+
+            const logEntry = lastLine.data;
+            logEntry.should.be.an.Object();
+            logEntry.name.should.be.exactly(update.name);
+
+            const password = logEntry.password;
+            password.should.be.an.Object();
+            password.key.should.be.a.String();
+            password.salt.should.be.a.String();
+            password.iterations.should.be.a.Number();
+         });
+
+         it('rejects short password', function * () {
+            yield put(userData.id, { password: 'short' }).expect(400);
+         });
+
+      });
+
+      describe('for non-existent user', () => {
+
+         it('responds with not found [404]', function * () {
+            yield put(uuid.v4, {}).expect(404);
+         });
+
+      });
+
 
    });
 
@@ -116,7 +277,7 @@ describe('log-api [e2e]', () => {
 
          const lookups = _.range(50).map(() => agent
             .post('/log')
-            .send({ actionId: 'load' })
+            .send({ actionId: 'random' })
             .expect(200));
 
          return Bacon
@@ -125,7 +286,9 @@ describe('log-api [e2e]', () => {
       }
 
       it('1000 POST requests to /log [1 ms apart]', function * (done) {
+         // Set high timeout so mocha doesn't fail the test
          this.timeout(15000);
+         
          const time = process.hrtime();
          const total = 1000;
 
