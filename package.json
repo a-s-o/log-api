@@ -17,6 +17,10 @@
   },
   "author": "Amandeep",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/a-s-o/log-api.git"
+  },
   "dependencies": {
     "@aso/architect": "a-s-o/architect",
     "@aso/bluebird": "a-s-o/bluebird",
