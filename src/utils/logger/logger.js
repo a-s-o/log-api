@@ -15,7 +15,11 @@ module.exports = function provider (config, imports, provide) {
       name: config.namespace,
       level: logLevel,
       serializers: {
-         err: err => err.stack
+         err: err => ({
+            name: err.name,
+            message: err.message,
+            stack: (err.stack || '').split('\n')
+         })
       }
    });
 
