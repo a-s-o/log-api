@@ -12,7 +12,8 @@ const providers = [
 
    // Users
    { packagePath: './user/commands' },
-   { packagePath: './user/queries', tableName: 'users' },
+   { packagePath: './user/collection', tableName: 'users' },
+   { packagePath: './user/queries' },
 
    // Offset
    { packagePath: './storage/offset', topicName: 'users', tableName: 'users' },
