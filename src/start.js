@@ -5,7 +5,7 @@ const cfg = require('../config.js');
 
 const providers = [
    // Main API
-   { packagePath: './api', port: 3000 },
+   { packagePath: './api', port: cfg.main.port },
 
    // Event stores
    { packagePath: './log/events' },
