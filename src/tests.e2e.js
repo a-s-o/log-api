@@ -27,6 +27,10 @@ function randomUser (obj) {
    }, obj);
 }
 
+function flush () {
+   return Bluebird.delay(150);
+}
+
 
 describe('log-api [e2e]', () => {
    let server;
@@ -129,7 +133,7 @@ describe('log-api [e2e]', () => {
 
          it('rejects second posting due to conflict', function * () {
             // Wait for changes to presist to postgres
-            yield Bluebird.delay(1100);
+            yield flush();
             yield post(userData).expect(409);
          });
 
@@ -187,7 +191,7 @@ describe('log-api [e2e]', () => {
                .expect(200);
 
             // Wait for flush
-            yield Bluebird.delay(1100);
+            yield flush();
 
             // Merge response so we have access to the user's id
             userData = resp.body.result;
@@ -288,7 +292,7 @@ describe('log-api [e2e]', () => {
       it('1000 POST requests to /log [1 ms apart]', function * (done) {
          // Set high timeout so mocha doesn't fail the test
          this.timeout(15000);
-         
+
          const time = process.hrtime();
          const total = 1000;
 

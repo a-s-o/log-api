@@ -37,7 +37,7 @@ const setup = Bluebird.coroutine(function *setupUserCollection (config, imports)
 
    // Create a stream of state changes then process in batches
    const dbUpdates = Events.asEventStream( state.offset )
-      .bufferWithTimeOrCount(1000, 10)
+      .bufferWithTimeOrCount(100, 10)
       .map(batchToTransaction)
       .flatMap(Bacon.fromPromise);
 
@@ -50,7 +50,7 @@ const setup = Bluebird.coroutine(function *setupUserCollection (config, imports)
          changes: evt.changes,
          offset: _.get(evt, 'result.offset')
       };
-      
+
       log.info(info, `user-collection updated`);
    });
 
