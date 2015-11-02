@@ -66,7 +66,7 @@ exports.createContainer = t.typedFunc({
       // Assume that if an existing container is re-created then
       // the new container replaces the existing one
       //
-      // NOTE: don't do this in production; there should be
+      // NOTE: normally there should be
       // a separate method for container removal
       const removed = Bluebird.defer();
       const existing = docker.getContainer(name);
@@ -75,7 +75,7 @@ exports.createContainer = t.typedFunc({
 
       const deferred = Bluebird.defer();
 
-      // Add contianer name to container options
+      // Add container name to container options
       const args = _.extend({ name }, options);
       docker.createContainer(args, deferred.callback);
       yield deferred.promise;
@@ -90,20 +90,27 @@ exports.createContainer = t.typedFunc({
 // Starts a previously created container and returns inspection info
 
 exports.startContainer = t.typedFunc({
-   inputs: [types.Docker, t.String],
+   inputs: [t.Function, types.Docker, t.String],
    output: t.Promise, // < Docker.Info >
-   fn: Bluebird.coroutine(function *startContainer (docker, name) {
+   fn: Bluebird.coroutine(function *startContainer (logFn, docker, name) {
       // If container is already running, just return the info
       const info = yield containerInfo(docker, name);
       if (info.State.Running === true) return info;
 
       // Otherwise, start the container
       const container = docker.getContainer(info.Id);
-      const started = Bluebird.defer();
-      container.start(started.callback);
-      yield started.promise;
+      const start = container.start.bind(container);
+      yield start;
 
-      // re-fetch the info
-      return containerInfo(docker, name);
+      // Re-fetch the info
+      let newInfo = yield containerInfo(docker, name);
+
+      // Wait infinitely until container starts
+      while (!newInfo || newInfo.State.Running !== true) {
+         logFn(`Container ${name} has not started. Retrying after 2s.`);
+         yield Bluebird.delay(2000);
+         yield start;
+         newInfo = yield containerInfo(docker, name);
+      }
    })
 });

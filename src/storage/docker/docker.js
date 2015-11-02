@@ -34,9 +34,8 @@ const checkConnectivity = Bluebird.coroutine(function *check () {
    }
 });
 
-const setup = Bluebird.coroutine(function *setup (config) {
+const setup = Bluebird.coroutine(function *setup (config, log) {
    yield checkConnectivity();
-
    const Docker = types.Docker;
 
    // Partially apply the docker client to all public methods
@@ -44,7 +43,7 @@ const setup = Bluebird.coroutine(function *setup (config) {
    const client = factories.Client({ socketPath: config.socketPath });
    Docker.containerInfo = _.partial(ops.containerInfo, client);
    Docker.createContainer = _.partial(ops.createContainer, client);
-   Docker.startContainer = _.partial(ops.startContainer, client);
+   Docker.startContainer = _.partial(ops.startContainer, log, client);
 
    return { docker: Docker };
 });
@@ -53,5 +52,13 @@ module.exports = function provider (config, imports, provide) {
    if (typeof config.socketPath !== 'string') {
       throw new Error('config.socketPath must be a string');
    }
-   return setup(config, imports).nodeify(provide);
+
+   const cfg = _.clone(config);
+
+   if (imports && imports.logger) {
+      const log = imports.logger.child({ component: 'docker' });
+      return setup(cfg, log.info.bind(log)).nodeify(provide);
+   }
+
+   return setup(cfg, console.log.bind(console)).nodeify(provide);
 };

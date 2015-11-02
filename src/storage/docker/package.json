@@ -6,7 +6,7 @@
    "author": "Amandeep",
    "license": "UNLICENSED",
    "plugin": {
-      "consumes": [],
+      "consumes": ["logger"],
       "provides": ["docker"]
    }
 }
