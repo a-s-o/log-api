@@ -2,6 +2,7 @@
 
 const _ = require('lodash');
 const t = require('@aso/tcomb');
+const Bluebird = require('@aso/bluebird');
 const Sequelize = require('sequelize');
 
 module.exports = function extendClient (config, imports, provide) {
@@ -43,28 +44,38 @@ module.exports = function extendClient (config, imports, provide) {
    Offset.fetch = t.typedFunc({
       inputs: [t.String],
       output: t.Promise, // < Offset >
-      fn: function fetchOffset (tableName) {
+      fn: Bluebird.coroutine(function *fetchOffset (tableName) {
 
-         function applyDefault (existing) {
-            return Offset.create(existing && existing.toJSON() || {
-               tableName: tableName,
-               topic: 'logs',
-               offset: 0,
-               partition: 0
-            });
-         }
+         const existing = yield model.findById(tableName);
+         if (existing && existing.toJSON) return existing.toJSON();
 
-         return model.findById(tableName).then(applyDefault);
-      }
+         const created = yield model.create({
+            tableName: tableName,
+            topic: 'logs',
+            offset: 0,
+            partition: 0
+         });
+
+         return created.toJSON();
+      })
    });
 
-   Offset.save = t.typedFunc({
-      inputs: [Offset],
-      output: t.Promise, // < Offset >
-      fn: function *saveOffset (offset) {
-         return model.upsert(offset).then(() => offset);
-      }
-   });
+   Offset.save = function saveOffset (tableName, evts, trx) {
+      const lastEvent = _.last(evts);
+      const newOffset = _.get(lastEvent, '_kafka.offset');
+
+      return model.findById(tableName, { transaction: trx })
+         .then(function update (doc) {
+            if (!doc) throw new Error(`Offset state not found for ${tableName}`);
+            if (!newOffset) return doc;
+
+            // Start from the next offset
+            doc.offset = newOffset + 1;
+
+            // Save the document in the same transaction
+            return doc.save({ transaction: trx });
+         });
+   };
 
    function output () {
       return { offset: Offset };
