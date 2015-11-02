@@ -1,7 +1,21 @@
 'use strict';
 
 const _ = require('lodash');
-const joi = require('joi');
+const type = require('joi');
+
+// Interface (log-events)
+// ---
+// Service:EventStore = {
+//    create [properties:Obj]                   -> Promise < Obj >
+//    validate [eventName:Str, properties:Obj]  -> Obj
+//    asEventStream [offset:Num]                -> EventStream
+// };
+
+const EncryptedPassword = type.object().keys({
+   key: type.string().required(),
+   salt: type.string().required(),
+   iterations: type.number().required()
+});
 
 module.exports = function provider (options, imports, provide) {
 
@@ -13,31 +27,25 @@ module.exports = function provider (options, imports, provide) {
       typeProperty: 'actionId',
       metadataProperty: '_kafka',
       commonProperties: {
-         actionId: joi.string().required(),
-         actionTime: joi.date().default(() => Date.now(), 'Now'),
-         _kafka: joi.date().default(() => ({}), 'EmptyObject')
+         actionId: type.string().required(),
+         actionTime: type.date().default(() => Date.now(), 'Now'),
+         _kafka: type.date().default(() => ({}), 'EmptyObject')
       }
    };
 
-   const EncryptedPassword = joi.object().keys({
-      key: joi.string().required(),
-      salt: joi.string().required(),
-      iterations: joi.number().required()
-   });
-
    const supportedEvents = {
       USER_SIGNUP: {
-         userId: joi.string().guid().required(),
-         data: joi.object().required().keys({
-            email: joi.string().email().required(),
-            name: joi.string().required(),
+         userId: type.string().guid().required(),
+         data: type.object().required().keys({
+            email: type.string().email().required(),
+            name: type.string().required(),
             password: EncryptedPassword.required()
          })
       },
       USER_EDIT_PROFILE: {
-         userId: joi.string().guid().required(),
-         data: joi.object().required().keys({
-            name: joi.string(),
+         userId: type.string().guid().required(),
+         data: type.object().required().keys({
+            name: type.string(),
             password: EncryptedPassword
          })
       }
