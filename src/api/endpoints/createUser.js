@@ -8,7 +8,7 @@ module.exports = function createUser (imports) {
 
    return {
       inputs: {
-         email: joi.string().lowercase().email().required(),
+         email: joi.string().lowercase().email({ minDomainAtoms: 2 }).required(),
          name: joi.string().required(),
          password: joi.string().min(8).required()
       },
