@@ -1,0 +1,19 @@
+{
+   "name": "user-collection",
+   "main": "user-collection.js",
+   "version": "1.0.0",
+   "description": "Maintains a table of users in postgres",
+   "author": "Amandeep",
+   "license": "UNLICENSED",
+   "plugin": {
+      "consumes": [
+         "log-events",
+         "sequelize",
+         "offset",
+         "logger"
+      ],
+      "provides": [
+         "user-collection"
+      ]
+   }
+}

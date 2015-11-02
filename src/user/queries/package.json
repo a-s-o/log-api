@@ -7,10 +7,7 @@
    "license": "UNLICENSED",
    "plugin": {
       "consumes": [
-         "log-events",
-         "sequelize",
-         "offset",
-         "logger"
+         "user-collection"
       ],
       "provides": [
          "user-queries"
