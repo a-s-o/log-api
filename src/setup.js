@@ -48,8 +48,7 @@ function createContainer (docker, result, name) {
    }
 
    return Bluebird.resolve(config[name])
-      // // TODO: enable pull image
-      // .tap(pullImage)
+      .tap(pullImage)
       .then(create)
       .then(function containerCreated (info) {
          result[name] = info;
